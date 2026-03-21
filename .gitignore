@@ -208,3 +208,6 @@ __marimo__/
 
 # Claude project docs
 .claude/
+
+# Temporary research workspace
+.tmp/
