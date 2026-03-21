@@ -1,3 +1,3 @@
 # MIT 1.001 Term Project
 
-Workspace for a term project.
+Term project for MIT 1.001, taught by Abel Sanchez and John R. Williams.
