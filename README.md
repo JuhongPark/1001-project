@@ -1,5 +1,5 @@
 # MIT 1.001 Term Project
 
-Term project for MIT 1.001, taught by Abel Sanchez and John R. Williams.
+Term project for MIT 1.001 (Abel Sanchez, John R. Williams).
 
-Scope to be defined.
+Current direction of interest: healthcare AI systems. Starting with a landscape survey — see `docs/research/`.
