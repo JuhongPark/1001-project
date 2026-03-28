@@ -2,4 +2,4 @@
 
 Term project for MIT 1.001 (Abel Sanchez, John R. Williams).
 
-Exploring healthcare AI systems. Third candidate direction being sketched. `docs/research/`.
+Candidate directions within healthcare AI systems all sketched and reviewed. Each with its own feasibility profile. `docs/research/`.
