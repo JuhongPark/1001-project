@@ -2,6 +2,9 @@
 
 Term project for MIT 1.001 (Abel Sanchez, John R. Williams).
 
-LightMap — a shade-by-day, light-by-night map of Boston and Cambridge, Massachusetts. Arrived at from the healthcare AI systems exploration and a faculty pivot toward a more intuitive, map-based direction.
+LightMap — a shade-by-day, light-by-night map of Boston and Cambridge, Massachusetts.
 
-`docs/plan.md` and `docs/research/`.
+- Shadow engine computes building shadows from sun position.
+- Day and night prototype maps in `docs/`.
+- Data sources in `docs/data-catalog.md`.
+- Exploration trail in `docs/research/`.
