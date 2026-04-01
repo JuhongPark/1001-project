@@ -1,4 +1,4 @@
-# Project Plan: Boston Urban Mapping
+# Project Plan: LightMap Boston
 
 > *In the light of day, we shield you from the sun. In the dark of night, we guide you to the light.*
 

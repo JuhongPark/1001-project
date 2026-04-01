@@ -2,4 +2,6 @@
 
 Term project for MIT 1.001 (Abel Sanchez, John R. Williams).
 
-An AI system that maps urban environment and public health in Boston and Cambridge, Massachusetts. Framing settled: a shade-by-day, light-by-night map. See `docs/plan.md` and `docs/research/`.
+LightMap — a shade-by-day, light-by-night map of Boston and Cambridge, Massachusetts. Arrived at from the healthcare AI systems exploration and a faculty pivot toward a more intuitive, map-based direction.
+
+`docs/plan.md` and `docs/research/`.
