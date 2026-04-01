@@ -80,6 +80,21 @@ function showOnboarding() {
     document.addEventListener("keydown", escHandler);
 }
 
+// ── Helpers ──
+
+function coordsToGeoJSON(coords) {
+    return {
+        type: "FeatureCollection",
+        features: coords.map(function(c) {
+            return {
+                type: "Feature",
+                geometry: { type: "Point", coordinates: c },
+                properties: {},
+            };
+        }),
+    };
+}
+
 // ── Data Loading ──
 
 async function loadStaticData() {
@@ -108,8 +123,9 @@ async function loadNightData() {
             fetch("/api/businesses"),
         ]);
         if (!slRes.ok || !bizRes.ok) throw new Error("night data HTTP error");
-        streetlightData = await slRes.json();
+        const slRaw = await slRes.json();
         businessData = await bizRes.json();
+        streetlightData = coordsToGeoJSON(slRaw.coords);
         D("loadNightData: done, sl=" + streetlightData.features.length + " biz=" + businessData.features.length);
     } catch (err) {
         D("loadNightData ERROR: " + err.message);
@@ -466,7 +482,7 @@ function setupClickInspect() {
         } else if (currentMode === "night" && streetlightData) {
             const clickLng = e.lngLat.lng;
             const clickLat = e.lngLat.lat;
-            if (clickLat < 42.22 || clickLat > 42.40 || clickLng < -71.19 || clickLng > -70.92) {
+            if (clickLat < 42.22 || clickLat > 42.41 || clickLng < -71.20 || clickLng > -70.92) {
                 mapPopup.remove();
                 return;
             }

@@ -72,13 +72,13 @@ def get_shadows(time: str | None = Query(None)):
 
 @app.get("/api/streetlights")
 def get_streetlights():
-    """Return streetlight locations as GeoJSON (cached after first load)."""
+    """Return streetlight locations as compact coordinate array (cached)."""
     global _streetlight_cache
     if _streetlight_cache is not None:
         return _streetlight_cache
 
     path = os.path.join(DATA, "streetlights", "streetlights.csv")
-    features = []
+    coords = []
     with open(path) as f:
         reader = csv.DictReader(f)
         for row in reader:
@@ -86,14 +86,10 @@ def get_streetlights():
                 lat = float(row["Lat"])
                 lon = float(row["Long"])
                 if lat and lon:
-                    features.append({
-                        "type": "Feature",
-                        "geometry": {"type": "Point", "coordinates": [lon, lat]},
-                        "properties": {},
-                    })
+                    coords.append([round(lon, 6), round(lat, 6)])
             except (ValueError, KeyError):
                 continue
-    _streetlight_cache = {"type": "FeatureCollection", "features": features}
+    _streetlight_cache = {"coords": coords}
     return _streetlight_cache
 
 
