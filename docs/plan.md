@@ -4,7 +4,7 @@
 
 ## Summary
 
-A map-based system that recommends optimal walking and running routes in **Boston** based on time of day and weather conditions. Shaded and comfortable paths by day, well-lit and active streets by night, and hazard-aware detours in adverse weather.
+A map that shows **where shade is during the day** and **where light is at night** in Boston, updated in real time based on sun position, building geometry, streetlights, and weather.
 
 **Scope:** City of Boston only. Cambridge and other municipalities are out of scope (future work).
 
@@ -12,41 +12,29 @@ A map-based system that recommends optimal walking and running routes in **Bosto
 
 ## Problem
 
-"Right now, from here, which way should I walk?"
+People walk, run, and move through the city every day. But they don't know:
 
-Existing map apps (Google Maps, Apple Maps) optimize for **shortest distance or fastest time**. But what people actually care about while walking or running:
+- Where is shaded right now? (hot afternoon, high UV)
+- Where is well-lit right now? (dark evening, walking home)
+- Where tends to flood when it rains?
+- Where tends to ice over in winter?
 
-- Hot summer afternoon: Where is the shade?
-- Dark winter evening: Which streets are well-lit and active?
-- Rainy day: Which spots tend to flood?
-- After a snowstorm: Where are the icy patches?
-
-No app answers these questions.
+This information exists in public data, but nobody has put it on a map.
 
 ---
 
-## How It Works
+## What We Build
 
-### Input
-- Origin and destination
-- Current time (automatic)
-- Current weather (automatic, via API)
+An interactive map of Boston that visualizes:
 
-### Processing
+| Time / Condition | What the map shows |
+|------------------|-------------------|
+| Daytime | Shaded areas based on sun angle + building height + tree canopy |
+| Nighttime | Bright areas based on streetlight locations + active businesses |
+| Rain | Historically flood-prone areas |
+| Below freezing | Historically icy areas |
 
-Route edge weights change dynamically based on time and conditions:
-
-| Condition | Preferred | Avoided |
-|-----------|-----------|---------|
-| Summer day (high UV) | Building/tree shadow segments | Sun-exposed segments |
-| Night | Streetlight-dense, open-business areas | Dark, isolated segments |
-| Rain | Historically low-flood segments | Flood-prone segments |
-| Winter (below freezing) | Priority snow-cleared roads | Historically icy segments |
-
-### Output
-- Recommended route on an interactive map
-- Per-segment condition indicators (shade ratio, streetlight density, hazard warnings)
-- Honest uncertainty: "Insufficient data for this segment"
+The map updates automatically as time and weather change. Users look at the map and make their own decisions.
 
 ---
 
@@ -54,70 +42,66 @@ Route edge weights change dynamically based on time and conditions:
 
 ### Static Data (download once)
 
-| Data | Source | Format | Purpose |
-|------|--------|--------|---------|
-| 3D buildings (with height) | BPDA, data.boston.gov | CSV/GeoJSON | Shadow computation |
-| Streetlight locations (74,065) | data.boston.gov | CSV (lat/lon) | Night path brightness |
-| Tree canopy | data.boston.gov | GeoJSON/Raster | Tree shade |
-| Road network | OpenStreetMap | PBF -> graph | Route search |
-| Crime incidents (with hour) | data.boston.gov | CSV (257K+) | Night safety score |
-| Crash records (with timestamp) | Vision Zero, data.boston.gov | CSV (42K+) | Intersection risk |
-| Food establishment locations | data.boston.gov | CSV (lat/lon) | Night activity |
+| Data | Source | Purpose |
+|------|--------|---------|
+| 3D buildings with height (128K) | BPDA, data.boston.gov | Shadow projection |
+| Streetlight locations (74K) | data.boston.gov | Nighttime brightness |
+| Tree canopy polygons | data.boston.gov | Daytime tree shade |
+| Crime incidents with hour (257K+) | data.boston.gov | Nighttime safety context |
+| Crash records with timestamp (42K+) | Vision Zero, data.boston.gov | Nighttime safety context |
+| Food establishment locations | data.boston.gov | Nighttime activity (open businesses) |
 
-### Real-Time Data (API calls)
+### Real-Time Data (API, free, no auth)
 
-| Data | Source | Auth | Refresh |
-|------|--------|------|---------|
-| UV index + temperature | Open-Meteo | None | Real-time |
-| Air quality (AQI) | Open-Meteo | None | Real-time |
-| Weather conditions (rain/snow) | NWS API | None | Hourly |
+| Data | Source |
+|------|--------|
+| UV index + temperature | Open-Meteo |
+| Air quality (AQI) | Open-Meteo |
+| Weather conditions (rain/snow) | NWS API |
 
 ### Indirect Estimation
 
-| Data | Source | Purpose | Limitation |
-|------|--------|---------|------------|
-| Flood-prone segments | Historical 311 flooding complaints | Rainy-day avoidance | Not real-time, pattern-based |
-| Icy segments | Historical 311 icing complaints | Winter avoidance | Not real-time, pattern-based |
-| Business hours | Google Places API | Night activity estimation | Paid ($200/mo free credit) |
+| Data | Source | Limitation |
+|------|--------|------------|
+| Flood-prone areas | Historical 311 flooding complaints | Pattern-based, not real-time |
+| Icy areas | Historical 311 icing complaints | Pattern-based, not real-time |
+| Business hours | Google Places API | Paid ($200/mo free credit) |
 
 ---
 
 ## Core Computation
 
-### 1. Shadow Calculation (daytime)
-- Sun position: date + time + latitude -> altitude + azimuth (via pvlib)
-- Building shadow: height x tan(90 - altitude) = shadow length, projected along azimuth
-- Tree shadow: canopy polygon radius as approximation
-- Per-road-segment shade ratio
+### 1. Shadow Map (daytime)
+- Sun position from date + time + latitude (pvlib library)
+- Each building: height x tan(90 - sun altitude) = shadow length, projected along sun azimuth
+- Tree canopy polygons add additional shade zones
+- Result: overlay on map showing shaded vs sun-exposed areas
 
-### 2. Night Path Score
-- Streetlight density: count within 50m buffer of each road segment
-- Business activity: number of open businesses nearby (location + hours)
-- Safety score: nighttime (20:00-06:00) crime/crash frequency from historical data
-- Composite score = weighted sum
+Verified: July 2pm, a 10m building casts a 4.8m shadow. January 2pm, the same building casts a 27m shadow. Seasonal effect is dramatic.
 
-### 3. Adverse Weather Risk
-- Rain: historical flood complaint density x current precipitation status
-- Winter: historical icing complaint density x current sub-zero temperature
+### 2. Brightness Map (nighttime)
+- Streetlight locations plotted with proximity glow
+- Active businesses marked (location + hours if available)
+- Historical nighttime crime/crash density as safety context layer
+- Result: overlay on map showing bright/active vs dark/quiet areas
 
-### 4. Route Search
-- OSM road network -> graph conversion (OSMnx)
-- Edge weights = distance + condition-based penalty/bonus
-- Dijkstra or A* for optimal path
+### 3. Weather Hazard Overlay
+- Rain: historical flood complaint density shown when precipitation detected
+- Winter: historical icing complaint density shown when temperature is below freezing
 
 ---
 
-## Answer Downgrade Design
+## Honest Uncertainty
 
-The system is honest about what it does not know:
+The system shows what it knows and admits what it does not:
 
-| Situation | System Response |
-|-----------|-----------------|
-| Building data available | "72% shade on this segment" (confident) |
-| Tree data from 2019 | "Tree info is outdated, may differ from current state" (warning) |
-| No streetlight data for segment | "Cannot assess brightness for this segment" (withheld) |
-| Sparse flood history | "Insufficient flood history, risk uncertain" (withheld) |
-| Unprecedented storm | "Beyond historical patterns, cannot predict" (refused) |
+| Situation | Display |
+|-----------|---------|
+| Building data available | Shade area rendered with confidence |
+| Tree data from 2019 | Label: "Tree info may be outdated" |
+| No streetlight data for area | Label: "Brightness unknown" |
+| Sparse flood history | Label: "Flood risk uncertain" |
+| Unprecedented weather | Label: "Beyond historical patterns" |
 
 ---
 
@@ -130,15 +114,13 @@ The system is honest about what it does not know:
 │   └── specs/               <- course requirements
 ├── src/
 │   ├── shadow/              <- shadow computation module
-│   ├── nightpath/           <- night path scoring module
-│   ├── routing/             <- route search engine
-│   └── weather/             <- real-time weather/UV/AQI
+│   ├── brightness/          <- nighttime brightness module
+│   └── weather/             <- real-time weather/UV/AQI + hazard overlay
 ├── data/
 │   ├── buildings/           <- 3D building data
 │   ├── streetlights/        <- streetlight locations
 │   ├── trees/               <- tree canopy
-│   ├── safety/              <- crime/crash data
-│   └── weather/             <- weather cache
+│   └── safety/              <- crime/crash data
 └── README.md
 ```
 
@@ -150,27 +132,23 @@ The system is honest about what it does not know:
 - [ ] Download and parse building height data
 - [ ] Download streetlight location data
 - [ ] Download tree canopy data
-- [ ] Convert OSM road network to graph
 - [ ] Preprocess crime/crash data by time of day
 
-### Phase 2: Core Computation Engine
+### Phase 2: Core Computation
 - [ ] Sun position calculator
-- [ ] Building shadow projection engine
-- [ ] Per-segment shade ratio calculation
-- [ ] Night path scoring (streetlights + businesses + safety)
-- [ ] Adverse weather risk scoring
+- [ ] Building shadow projection
+- [ ] Shadow map generation for any given time
+- [ ] Streetlight brightness map
+- [ ] Weather hazard overlay
 
-### Phase 3: Route Search
-- [ ] Condition-weighted route search
-- [ ] Real-time weather API integration
-- [ ] Answer downgrade logic
+### Phase 3: Map Interface
+- [ ] Web map with shadow overlay (daytime)
+- [ ] Web map with brightness overlay (nighttime)
+- [ ] Auto-switch between day/night based on time
+- [ ] Weather condition panel (current UV, temperature, AQI)
+- [ ] Honest uncertainty labels
 
-### Phase 4: UI / Map
-- [ ] Web map interface
-- [ ] Route visualization (color-coded segments)
-- [ ] Condition panel (current UV, temperature, AQI)
-
-### Phase 5: Video Production
+### Phase 4: Video Production
 - [ ] Proposal video
 - [ ] Midpoint video
 - [ ] Final video
@@ -181,8 +159,7 @@ The system is honest about what it does not know:
 
 - Python 3.12
 - pvlib (sun position)
-- OSMnx + NetworkX (road graph + routing)
-- Shapely / GeoPandas (spatial operations)
+- Shapely / GeoPandas (spatial operations, shadow geometry)
 - FastAPI or Flask (backend)
 - Leaflet or Mapbox (frontend map)
 - Open-Meteo API (weather/UV/AQI)
@@ -193,9 +170,9 @@ The system is honest about what it does not know:
 
 | Criteria (points) | How this project addresses it |
 |--------------------|-------------------------------|
-| Complexity (15) | 3D shadow computation + multi-condition routing + real-time API |
-| User Interface (15) | Interactive map, color-coded segments, condition panel |
-| Effort (15) | Multi-source data integration, computation engine, full stack |
-| Design (15) | Modular architecture, answer downgrade structure |
-| Video (40) | "Which path right now?" demo is visually compelling |
-| Bonus (10+) | Real-time + seasonal adaptation + honest uncertainty |
+| Complexity (15) | 3D shadow computation from 128K buildings + real-time weather integration |
+| User Interface (15) | Interactive map with time-adaptive overlays and condition panel |
+| Effort (15) | Multi-source data integration, shadow engine, full stack |
+| Design (15) | Modular architecture, honest uncertainty display |
+| Video (40) | Live demo: "watch the shadows move as time changes" |
+| Bonus (10+) | Real-time adaptation + seasonal variation + data honesty |
