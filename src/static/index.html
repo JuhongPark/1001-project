@@ -20,6 +20,15 @@
         <div id="info-stats"></div>
     </div>
 
+    <!-- Weather Panel -->
+    <div id="weather-panel">
+        <div id="weather-temp"></div>
+        <div id="weather-condition"></div>
+        <div id="weather-uv"></div>
+        <div id="weather-aqi"></div>
+        <div id="weather-alert"></div>
+    </div>
+
     <!-- Time Slider -->
     <div id="time-control">
         <label for="time-slider" id="slider-label">12:00 PM</label>
@@ -40,6 +49,10 @@
         <label><input type="checkbox" id="toggle-buildings" checked> Buildings</label>
         <label><input type="checkbox" id="toggle-streetlights" checked> Streetlights</label>
         <label><input type="checkbox" id="toggle-businesses" checked> Businesses</label>
+        <label><input type="checkbox" id="toggle-crime"> Crime density</label>
+        <div id="layer-divider"></div>
+        <label><input type="checkbox" id="toggle-flood"> Flood risk</label>
+        <label><input type="checkbox" id="toggle-ice"> Ice risk</label>
     </div>
 
     <!-- Legend -->
@@ -69,6 +82,17 @@
                 </div>
             </div>
             <div class="legend-hint">Brightness from 74,000 streetlights. Click anywhere for details.</div>
+        </div>
+        <div id="legend-hazard" class="legend-section" style="display:none">
+            <div class="legend-item">
+                <span class="legend-color" style="background:rgba(37,99,235,0.5)"></span>
+                <span>Flood-prone area</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background:rgba(147,51,234,0.5)"></span>
+                <span>Ice-prone area</span>
+            </div>
+            <div class="legend-hint">Based on 311 complaints (2019-2024).</div>
         </div>
     </div>
 

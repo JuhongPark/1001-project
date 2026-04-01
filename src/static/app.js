@@ -13,6 +13,10 @@ let streetlightData = null;
 let businessData = null;
 let buildingData = null;
 let sliderDebounceTimer = null;
+let weatherTimer = null;
+let floodData = null;
+let iceData = null;
+let crimeNightData = null;
 
 function D(msg) { fetch("/api/debug?msg=" + encodeURIComponent(msg)); }
 
@@ -43,6 +47,7 @@ async function init() {
             await updateFromSlider();
             D("updateFromSlider done");
             showOnboarding();
+            startWeatherUpdates();
         } catch (err) {
             D("INIT ERROR: " + err.message);
             hideLoading();
@@ -334,7 +339,7 @@ function updateUI(info) {
         statsEl.style.display = "none";
     }
 
-    ["info-panel", "time-control", "layer-control", "legend"].forEach((id) => {
+    ["info-panel", "time-control", "layer-control", "legend", "weather-panel"].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("night", isNight);
     });
@@ -346,6 +351,7 @@ function updateUI(info) {
     document.getElementById("toggle-buildings").closest("label").style.display = info.is_day ? "block" : "none";
     document.getElementById("toggle-streetlights").closest("label").style.display = info.is_day ? "none" : "block";
     document.getElementById("toggle-businesses").closest("label").style.display = info.is_day ? "none" : "block";
+    document.getElementById("toggle-crime").closest("label").style.display = info.is_day ? "none" : "block";
 }
 
 function formatTime(isoStr) {
@@ -433,6 +439,83 @@ function setupLayerToggles() {
     document.getElementById("toggle-businesses").addEventListener("change", (e) => {
         setLayerVisibility("businesses-circle", e.target.checked);
     });
+    document.getElementById("toggle-flood").addEventListener("change", (e) => {
+        toggleHazardLayer("flood", e.target.checked);
+    });
+    document.getElementById("toggle-ice").addEventListener("change", (e) => {
+        toggleHazardLayer("ice", e.target.checked);
+    });
+    document.getElementById("toggle-crime").addEventListener("change", (e) => {
+        toggleHazardLayer("crime", e.target.checked);
+    });
+}
+
+// ── Hazard / Safety Layers ──
+
+async function toggleHazardLayer(type, show) {
+    if (!show) {
+        setLayerVisibility(type + "-heat", false);
+        var legendHazard = document.getElementById("legend-hazard");
+        var anyActive = document.getElementById("toggle-flood").checked ||
+                        document.getElementById("toggle-ice").checked;
+        legendHazard.style.display = anyActive ? "block" : "none";
+        return;
+    }
+
+    var data = null;
+    if (type === "flood") {
+        if (!floodData) {
+            D("loading flood data");
+            var res = await fetch("/api/hazards/flood");
+            var raw = await res.json();
+            floodData = coordsToGeoJSON(raw.coords);
+        }
+        data = floodData;
+    } else if (type === "ice") {
+        if (!iceData) {
+            D("loading ice data");
+            var res = await fetch("/api/hazards/ice");
+            var raw = await res.json();
+            iceData = coordsToGeoJSON(raw.coords);
+        }
+        data = iceData;
+    } else if (type === "crime") {
+        if (!crimeNightData) {
+            D("loading crime night data");
+            var res = await fetch("/api/safety/nighttime");
+            var raw = await res.json();
+            crimeNightData = coordsToGeoJSON(raw.coords);
+        }
+        data = crimeNightData;
+    }
+
+    if (!data) return;
+
+    var layerId = type + "-heat";
+    var sourceId = type + "-source";
+
+    if (!map.getSource(sourceId)) {
+        map.addSource(sourceId, { type: "geojson", data: data });
+        var color = type === "flood" ? "#2563eb" : type === "ice" ? "#9333ea" : "#ef4444";
+        map.addLayer({
+            id: layerId,
+            type: "heatmap",
+            source: sourceId,
+            paint: {
+                "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 6, 14, 15, 18, 25],
+                "heatmap-opacity": 0.5,
+                "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 0.3, 14, 0.8, 18, 1.5],
+                "heatmap-color": [
+                    "interpolate", ["linear"], ["heatmap-density"],
+                    0, "rgba(0,0,0,0)", 0.3, color + "33", 0.6, color + "88", 1.0, color,
+                ],
+            },
+        });
+    }
+    setLayerVisibility(layerId, true);
+
+    var legendHazard = document.getElementById("legend-hazard");
+    legendHazard.style.display = "block";
 }
 
 // ── Cursor Interaction ──
@@ -544,6 +627,57 @@ function showError(text) {
     el.textContent = text;
     el.style.display = "block";
     setTimeout(() => { el.style.display = "none"; }, 5000);
+}
+
+// ── Weather Panel ──
+
+async function fetchWeather() {
+    try {
+        const res = await fetch("/api/weather");
+        if (!res.ok) return;
+        const w = await res.json();
+        updateWeatherPanel(w);
+    } catch (err) {
+        D("fetchWeather ERROR: " + err.message);
+    }
+}
+
+function updateWeatherPanel(w) {
+    document.getElementById("weather-temp").textContent = w.temperature_f + "\u00B0F";
+    document.getElementById("weather-condition").textContent = w.weather_description;
+
+    var uvEl = document.getElementById("weather-uv");
+    if (currentMode === "day") {
+        uvEl.textContent = "UV " + w.uv_index;
+        uvEl.style.display = "block";
+    } else {
+        uvEl.style.display = "none";
+    }
+
+    var aqiText = "AQI " + w.aqi;
+    if (w.aqi > 100) {
+        aqiText += " (Unhealthy)";
+    } else if (w.aqi > 50) {
+        aqiText += " (Moderate)";
+    }
+    document.getElementById("weather-aqi").textContent = aqiText;
+
+    var alertEl = document.getElementById("weather-alert");
+    alertEl.className = "";
+    alertEl.textContent = "";
+    var snowCodes = [71, 73, 75];
+    if (snowCodes.indexOf(w.weather_code) !== -1) {
+        alertEl.textContent = "Snow";
+        alertEl.className = "snow";
+    } else if (w.is_raining) {
+        alertEl.textContent = "Rain";
+        alertEl.className = "rain";
+    }
+}
+
+function startWeatherUpdates() {
+    fetchWeather();
+    weatherTimer = setInterval(fetchWeather, 300000);
 }
 
 // ── Start ──

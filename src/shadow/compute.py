@@ -3,7 +3,7 @@
 import math
 import json
 from datetime import datetime
-from shapely.geometry import Polygon, MultiPolygon, mapping
+from shapely.geometry import Polygon, MultiPolygon, GeometryCollection, mapping
 from shapely.ops import unary_union
 from pvlib.solarposition import get_solarposition
 import pandas as pd
@@ -98,11 +98,20 @@ def compute_all_shadows(geojson_path: str, dt: datetime):
         else:
             continue
 
+        if isinstance(poly, (GeometryCollection,)):
+            polys_list = [g for g in poly.geoms if isinstance(g, Polygon)]
+            if not polys_list:
+                continue
+            poly = max(polys_list, key=lambda p: p.area)
+
         if not poly.is_valid:
             poly = poly.buffer(0)
 
+        if not hasattr(poly, 'exterior'):
+            continue
+
         shadow = compute_shadow(poly, height, altitude, azimuth)
-        if shadow and shadow.is_valid:
+        if shadow and shadow.is_valid and hasattr(shadow, 'exterior') or isinstance(shadow, (Polygon, MultiPolygon)):
             height_m = height * 0.3048
             shadow_len = min(height_m / math.tan(math.radians(altitude)), 500)
             shadows.append({

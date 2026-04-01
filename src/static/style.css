@@ -132,6 +132,11 @@ body {
     font-size: 13px;
 }
 
+#layer-divider {
+    border-top: 1px solid rgba(128, 128, 128, 0.2);
+    margin: 4px 0;
+}
+
 #layer-control label {
     display: block;
     cursor: pointer;
@@ -199,6 +204,70 @@ body {
     font-size: 10px;
     color: #94a3b8;
     margin-top: 2px;
+}
+
+/* Weather Panel - bottom left, above nav controls */
+#weather-panel {
+    position: fixed;
+    bottom: 120px;
+    left: 12px;
+    z-index: 10;
+    background: white;
+    padding: 10px 14px;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    font-size: 12px;
+    line-height: 1.6;
+    min-width: 130px;
+    transition: background 0.5s, color 0.5s;
+}
+
+#weather-panel.night {
+    background: #1e293b;
+    color: #e2e8f0;
+}
+
+#weather-temp {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+#weather-condition {
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+
+#weather-uv,
+#weather-aqi {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+#weather-alert {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+#weather-alert:empty {
+    display: none;
+}
+
+#weather-alert.rain {
+    color: #2563eb;
+}
+
+#weather-alert.snow {
+    color: #7c3aed;
+}
+
+.night #weather-alert.rain {
+    color: #60a5fa;
+}
+
+.night #weather-alert.snow {
+    color: #a78bfa;
 }
 
 /* MapLibre popup */
@@ -349,6 +418,17 @@ body {
         top: auto;
         bottom: 90px;
         right: 12px;
+    }
+
+    #weather-panel {
+        bottom: 100px;
+        min-width: 0;
+        padding: 8px 12px;
+        font-size: 11px;
+    }
+
+    #weather-temp {
+        font-size: 16px;
     }
 
     .onboarding-content {
