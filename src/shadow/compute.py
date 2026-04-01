@@ -36,6 +36,8 @@ def compute_shadow(building_polygon: Polygon, height_ft: float,
 
     height_m = height_ft * 0.3048
     shadow_length_m = height_m / math.tan(math.radians(sun_altitude))
+    # Cap shadow length to 500m to avoid unrealistic polygons at very low sun angles
+    shadow_length_m = min(shadow_length_m, 500)
 
     shadow_direction = math.radians(sun_azimuth + 180)
 
@@ -54,8 +56,15 @@ def compute_shadow(building_polygon: Polygon, height_ft: float,
         shadow_coords.append((x + dx_deg, y + dy_deg))
 
     shadow_footprint = Polygon(shadow_coords)
+    result = unary_union([building_polygon, shadow_footprint])
 
-    return building_polygon.union(shadow_footprint).convex_hull
+    if not result.is_valid:
+        result = result.buffer(0)
+
+    return result
+
+
+_building_cache = {}
 
 
 def compute_all_shadows(geojson_path: str, dt: datetime):
@@ -69,8 +78,10 @@ def compute_all_shadows(geojson_path: str, dt: datetime):
     if altitude <= 0:
         return [], altitude, azimuth
 
-    with open(geojson_path) as f:
-        data = json.load(f)
+    if geojson_path not in _building_cache:
+        with open(geojson_path) as f:
+            _building_cache[geojson_path] = json.load(f)
+    data = _building_cache[geojson_path]
 
     shadows = []
     for feature in data["features"]:
@@ -83,7 +94,7 @@ def compute_all_shadows(geojson_path: str, dt: datetime):
             poly = Polygon(geom["coordinates"][0])
         elif geom["type"] == "MultiPolygon":
             polys = [Polygon(ring[0]) for ring in geom["coordinates"]]
-            poly = MultiPolygon(polys).convex_hull
+            poly = unary_union(polys)
         else:
             continue
 
@@ -92,10 +103,13 @@ def compute_all_shadows(geojson_path: str, dt: datetime):
 
         shadow = compute_shadow(poly, height, altitude, azimuth)
         if shadow and shadow.is_valid:
+            height_m = height * 0.3048
+            shadow_len = min(height_m / math.tan(math.radians(altitude)), 500)
             shadows.append({
                 "type": "Feature",
                 "properties": {
                     "height_ft": round(height, 1),
+                    "shadow_len_m": round(shadow_len, 1),
                     "type": "shadow"
                 },
                 "geometry": mapping(shadow)

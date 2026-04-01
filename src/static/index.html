@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LightMap Boston</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗺️</text></svg>">
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="map"></div>
+
+    <!-- Info Panel -->
+    <div id="info-panel">
+        <div id="info-title">LightMap Boston</div>
+        <div id="info-mode"></div>
+        <div id="info-time"></div>
+        <div id="info-sun"></div>
+        <div id="info-stats"></div>
+    </div>
+
+    <!-- Time Slider -->
+    <div id="time-control">
+        <label for="time-slider" id="slider-label">12:00 PM</label>
+        <input type="range" id="time-slider" min="0" max="1440" step="30" value="840" aria-label="Time of day">
+        <div id="slider-range">
+            <span>12 AM</span>
+            <span>6 AM</span>
+            <span>12 PM</span>
+            <span>6 PM</span>
+            <span>12 AM</span>
+        </div>
+    </div>
+
+    <!-- Layer Controls -->
+    <div id="layer-control">
+        <div id="layer-title">Layers</div>
+        <label><input type="checkbox" id="toggle-shadows" checked> Shadows</label>
+        <label><input type="checkbox" id="toggle-buildings" checked> Buildings</label>
+        <label><input type="checkbox" id="toggle-streetlights" checked> Streetlights</label>
+        <label><input type="checkbox" id="toggle-businesses" checked> Businesses</label>
+    </div>
+
+    <!-- Legend -->
+    <div id="legend">
+        <div id="legend-title">Legend</div>
+        <div id="legend-day" class="legend-section">
+            <div class="legend-item">
+                <span class="legend-color" style="background:rgba(51,65,85,0.4)"></span>
+                <span>Shaded area</span>
+            </div>
+            <div class="legend-item">
+                <span class="legend-color" style="background:rgba(148,163,184,0.7)"></span>
+                <span>Building footprint</span>
+            </div>
+            <div class="legend-hint">Dark areas = shade from buildings. Click for details.</div>
+        </div>
+        <div id="legend-night" class="legend-section" style="display:none">
+            <div class="legend-item">
+                <span class="legend-color" style="background:#f97316"></span>
+                <span>Open business</span>
+            </div>
+            <div class="legend-gradient">
+                <div class="gradient-bar"></div>
+                <div class="gradient-labels">
+                    <span>Dark</span>
+                    <span>Well-lit</span>
+                </div>
+            </div>
+            <div class="legend-hint">Brightness from 74,000 streetlights. Click anywhere for details.</div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

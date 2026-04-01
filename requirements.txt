@@ -1,0 +1,9 @@
+fastapi>=0.135
+uvicorn>=0.42
+httpx>=0.28
+pvlib>=0.15
+shapely>=2.1
+geopandas>=1.1
+pandas>=3.0
+numpy>=2.4
+folium>=0.20
