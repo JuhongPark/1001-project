@@ -4,7 +4,9 @@
 
 ## Summary
 
-A map-based system that recommends optimal walking and running routes based on time of day and weather conditions. Shaded and comfortable paths by day, well-lit and active streets by night, and hazard-aware detours in adverse weather.
+A map-based system that recommends optimal walking and running routes in **Boston** based on time of day and weather conditions. Shaded and comfortable paths by day, well-lit and active streets by night, and hazard-aware detours in adverse weather.
+
+**Scope:** City of Boston only. Cambridge and other municipalities are out of scope (future work).
 
 ---
 
