@@ -14,6 +14,7 @@ let businessData = null;
 let buildingData = null;
 let sliderDebounceTimer = null;
 let weatherTimer = null;
+let canopyData = null;
 let floodData = null;
 let iceData = null;
 let crimeNightData = null;
@@ -47,6 +48,7 @@ async function init() {
             await updateFromSlider();
             D("updateFromSlider done");
             showOnboarding();
+            setupAboutPanel();
             startWeatherUpdates();
         } catch (err) {
             D("INIT ERROR: " + err.message);
@@ -349,6 +351,7 @@ function updateUI(info) {
 
     document.getElementById("toggle-shadows").closest("label").style.display = info.is_day ? "block" : "none";
     document.getElementById("toggle-buildings").closest("label").style.display = info.is_day ? "block" : "none";
+    document.getElementById("toggle-trees").closest("label").style.display = info.is_day ? "block" : "none";
     document.getElementById("toggle-streetlights").closest("label").style.display = info.is_day ? "none" : "block";
     document.getElementById("toggle-businesses").closest("label").style.display = info.is_day ? "none" : "block";
     document.getElementById("toggle-crime").closest("label").style.display = info.is_day ? "none" : "block";
@@ -432,6 +435,9 @@ function setupLayerToggles() {
     document.getElementById("toggle-buildings").addEventListener("change", (e) => {
         setLayerVisibility("buildings-fill", e.target.checked);
         setLayerVisibility("buildings-outline", e.target.checked);
+    });
+    document.getElementById("toggle-trees").addEventListener("change", (e) => {
+        toggleTreeCanopy(e.target.checked);
     });
     document.getElementById("toggle-streetlights").addEventListener("change", (e) => {
         setLayerVisibility("streetlights-heat", e.target.checked);
@@ -627,6 +633,62 @@ function showError(text) {
     el.textContent = text;
     el.style.display = "block";
     setTimeout(() => { el.style.display = "none"; }, 5000);
+}
+
+// ── Tree Canopy ──
+
+async function toggleTreeCanopy(show) {
+    if (!show) {
+        setLayerVisibility("canopy-heat", false);
+        return;
+    }
+    if (!canopyData) {
+        D("loading canopy density");
+        showLoading("Loading tree data...");
+        try {
+            var res = await fetch("/api/canopy/density");
+            var raw = await res.json();
+            canopyData = coordsToGeoJSON(raw.coords);
+            D("canopy loaded: " + canopyData.features.length);
+        } catch (err) {
+            D("canopy ERROR: " + err.message);
+            hideLoading();
+            return;
+        }
+        hideLoading();
+    }
+    if (!map.getSource("canopy-source")) {
+        map.addSource("canopy-source", { type: "geojson", data: canopyData });
+        map.addLayer({
+            id: "canopy-heat",
+            type: "heatmap",
+            source: "canopy-source",
+            paint: {
+                "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 4, 14, 10, 18, 20],
+                "heatmap-opacity": 0.4,
+                "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 0.3, 14, 0.6, 18, 1],
+                "heatmap-color": [
+                    "interpolate", ["linear"], ["heatmap-density"],
+                    0, "rgba(0,0,0,0)", 0.3, "#bbf7d0", 0.6, "#4ade80", 1.0, "#16a34a",
+                ],
+            },
+        });
+    }
+    setLayerVisibility("canopy-heat", true);
+}
+
+// ── About Panel ──
+
+function setupAboutPanel() {
+    document.getElementById("about-toggle").addEventListener("click", function() {
+        var panel = document.getElementById("about-panel");
+        panel.style.display = panel.style.display === "none" ? "block" : "none";
+        if (currentMode === "night") panel.classList.add("night");
+        else panel.classList.remove("night");
+    });
+    document.getElementById("about-close").addEventListener("click", function() {
+        document.getElementById("about-panel").style.display = "none";
+    });
 }
 
 // ── Weather Panel ──

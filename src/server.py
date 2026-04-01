@@ -69,6 +69,20 @@ _building_geojson_cache = None
 _flood_cache = None
 _ice_cache = None
 _crime_night_cache = None
+_canopy_cache = None
+_canopy_density_cache = None
+
+SHADOW_CACHE_MAX = 48
+_shadow_cache = {}
+
+
+def _round_to_30min(dt: datetime) -> tuple:
+    """Round datetime to nearest 30-min interval, return cache key."""
+    minute = 0 if dt.minute < 15 else (30 if dt.minute < 45 else 0)
+    hour = dt.hour if dt.minute < 45 else dt.hour + 1
+    if hour >= 24:
+        hour = 0
+    return (dt.date().isoformat(), hour, minute)
 
 DEFAULT_WEATHER = {
     "temperature_f": 0,
@@ -113,11 +127,21 @@ def get_info(time: str | None = Query(None)):
 
 @app.get("/api/shadows")
 def get_shadows(time: str | None = Query(None)):
-    """Return shadow GeoJSON for a given time."""
+    """Return shadow GeoJSON for a given time.
+
+    Results are cached per 30-min interval (up to 48 entries).
+    First request for a slot computes shadows; subsequent requests are instant.
+    """
+    global _shadow_cache
     dt = parse_time(time)
+    cache_key = _round_to_30min(dt)
+
+    if cache_key in _shadow_cache:
+        return _shadow_cache[cache_key]
+
     buildings_path = os.path.join(DATA, "buildings", "all_buildings.geojson")
     shadows, altitude, azimuth = compute_all_shadows(buildings_path, dt)
-    return {
+    result = {
         "type": "FeatureCollection",
         "features": shadows,
         "metadata": {
@@ -125,8 +149,16 @@ def get_shadows(time: str | None = Query(None)):
             "sun_altitude": round(float(altitude), 2),
             "sun_azimuth": round(float(azimuth), 2),
             "building_count": len(shadows),
+            "cached": False,
         },
     }
+
+    if len(_shadow_cache) >= SHADOW_CACHE_MAX:
+        oldest_key = next(iter(_shadow_cache))
+        del _shadow_cache[oldest_key]
+    _shadow_cache[cache_key] = result
+
+    return result
 
 
 @app.get("/api/streetlights")
@@ -201,6 +233,32 @@ def get_buildings():
     with open(path) as f:
         _building_geojson_cache = json.load(f)
     return _building_geojson_cache
+
+
+@app.get("/api/canopy")
+def get_canopy():
+    """Return tree canopy polygons as GeoJSON (cached after first load)."""
+    global _canopy_cache
+    if _canopy_cache is not None:
+        return _canopy_cache
+
+    path = os.path.join(DATA, "trees", "all_canopy.geojson")
+    with open(path) as f:
+        _canopy_cache = json.load(f)
+    return _canopy_cache
+
+
+@app.get("/api/canopy/density")
+def get_canopy_density():
+    """Return tree canopy centroids as compact coordinate array for heatmap."""
+    global _canopy_density_cache
+    if _canopy_density_cache is not None:
+        return _canopy_density_cache
+
+    path = os.path.join(DATA, "trees", "canopy_centroids.json")
+    with open(path) as f:
+        _canopy_density_cache = json.load(f)
+    return _canopy_density_cache
 
 
 def _load_complaint_coords(filepaths, lat_col="latitude", lon_col="longitude"):

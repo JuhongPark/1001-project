@@ -47,6 +47,7 @@
         <div id="layer-title">Layers</div>
         <label><input type="checkbox" id="toggle-shadows" checked> Shadows</label>
         <label><input type="checkbox" id="toggle-buildings" checked> Buildings</label>
+        <label><input type="checkbox" id="toggle-trees"> Tree canopy</label>
         <label><input type="checkbox" id="toggle-streetlights" checked> Streetlights</label>
         <label><input type="checkbox" id="toggle-businesses" checked> Businesses</label>
         <label><input type="checkbox" id="toggle-crime"> Crime density</label>
@@ -67,7 +68,11 @@
                 <span class="legend-color" style="background:rgba(148,163,184,0.7)"></span>
                 <span>Building footprint</span>
             </div>
-            <div class="legend-hint">Dark areas = shade from buildings. Click for details.</div>
+            <div class="legend-item">
+                <span class="legend-color" style="background:rgba(34,197,94,0.4)"></span>
+                <span>Tree canopy</span>
+            </div>
+            <div class="legend-hint">Shade from buildings and trees. Click for details.</div>
         </div>
         <div id="legend-night" class="legend-section" style="display:none">
             <div class="legend-item">
@@ -93,6 +98,37 @@
                 <span>Ice-prone area</span>
             </div>
             <div class="legend-hint">Based on 311 complaints (2019-2024).</div>
+        </div>
+    </div>
+
+    <!-- About Panel -->
+    <button id="about-toggle">About</button>
+    <div id="about-panel" style="display:none">
+        <div id="about-header">
+            <b>About LightMap Boston</b>
+            <button id="about-close">&times;</button>
+        </div>
+        <div id="about-body">
+            <p><b>Find shade by day. Find light by night.</b></p>
+            <p>An interactive map of Boston and Cambridge showing shadow coverage during the day and streetlight brightness at night.</p>
+            <h4>Data Sources</h4>
+            <ul>
+                <li><b>Buildings:</b> 46,386 (Boston BPDA + Cambridge GIS). Height from 2010/2018 surveys.</li>
+                <li><b>Tree canopy:</b> 138,099 polygons. Boston 2019, Cambridge 2018.</li>
+                <li><b>Streetlights:</b> 80,182 (Boston + Cambridge city-owned).</li>
+                <li><b>Crime:</b> 257K incidents (Boston 2023-2026, Cambridge 2009-2026).</li>
+                <li><b>Flood risk:</b> 5,705 complaints from 311 (2019-2024).</li>
+                <li><b>Ice risk:</b> 42,275 complaints from 311 (2019-2024).</li>
+                <li><b>Weather:</b> Real-time from Open-Meteo API.</li>
+            </ul>
+            <h4>Limitations</h4>
+            <ul>
+                <li>Building heights are from 2010 (Boston) / 2018 (Cambridge). New construction is not reflected.</li>
+                <li>Tree canopy data is from 2018-2019. Trees may have been added or removed.</li>
+                <li>Flood/ice risk is based on historical complaints, not real-time conditions.</li>
+                <li>Shadow computation uses simplified geometry. Actual shadows may differ slightly.</li>
+            </ul>
+            <p class="about-footer">All data from data.boston.gov and data.cambridgema.gov. Downloaded 2026-04-01.</p>
         </div>
     </div>
 

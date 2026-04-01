@@ -65,25 +65,23 @@ def compute_shadow(building_polygon: Polygon, height_ft: float,
 
 
 _building_cache = {}
+_parsed_buildings = {}
 
 
-def compute_all_shadows(geojson_path: str, dt: datetime):
-    """Compute shadows for all buildings in a GeoJSON file.
+def _parse_buildings(geojson_path: str):
+    """Parse building GeoJSON once and return list of (Polygon, height_ft).
 
-    Returns:
-        List of shadow polygons as GeoJSON features
+    This avoids re-parsing JSON and re-creating Shapely objects on every request.
     """
-    altitude, azimuth = get_sun_position(dt)
-
-    if altitude <= 0:
-        return [], altitude, azimuth
+    if geojson_path in _parsed_buildings:
+        return _parsed_buildings[geojson_path]
 
     if geojson_path not in _building_cache:
         with open(geojson_path) as f:
             _building_cache[geojson_path] = json.load(f)
     data = _building_cache[geojson_path]
 
-    shadows = []
+    buildings = []
     for feature in data["features"]:
         height = feature["properties"].get("BLDG_HGT_2010", 0)
         if not height or height <= 0:
@@ -110,6 +108,27 @@ def compute_all_shadows(geojson_path: str, dt: datetime):
         if not hasattr(poly, 'exterior'):
             continue
 
+        buildings.append((poly, height))
+
+    _parsed_buildings[geojson_path] = buildings
+    return buildings
+
+
+def compute_all_shadows(geojson_path: str, dt: datetime):
+    """Compute shadows for all buildings in a GeoJSON file.
+
+    Returns:
+        List of shadow polygons as GeoJSON features
+    """
+    altitude, azimuth = get_sun_position(dt)
+
+    if altitude <= 0:
+        return [], altitude, azimuth
+
+    buildings = _parse_buildings(geojson_path)
+
+    shadows = []
+    for poly, height in buildings:
         shadow = compute_shadow(poly, height, altitude, azimuth)
         if shadow and shadow.is_valid and hasattr(shadow, 'exterior') or isinstance(shadow, (Polygon, MultiPolygon)):
             height_m = height * 0.3048
