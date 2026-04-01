@@ -1,5 +1,37 @@
 # LightMap Boston - Data Catalog
 
+## Download Log
+
+All datasets downloaded on **2026-04-01**.
+
+### Boston (data.boston.gov)
+
+| Dataset | Records | Valid Coords | File | Data Period |
+|---------|---------|-------------|------|-------------|
+| Buildings with height | 128,608 | 105,121 with height | `data/buildings/buildings.csv` | 2010 survey |
+| Buildings sample (GeoJSON) | 2,000 | 2,000 | `data/buildings/buildings_sample.geojson` | Subset of above |
+| Streetlight locations | 74,065 | 74,065 (100%) | `data/streetlights/streetlights.csv` | Current as of download |
+| Tree canopy polygons | 108,131 | 108,131 | `data/trees/TreeTops2019.geojson` | 2019 baseline, EPSG:2249 (needs reprojection) |
+| Crime incidents | 257,030 | 242,056 (94%) | `data/safety/crime_incidents.csv` | 2023-01-01 to 2026-03-29 |
+| Crash records | 42,685 | 42,685 (100%) | `data/safety/crash_records.csv` | 2015-01-01 to 2025-12-31 |
+| Food establishments | 3,198 | 2,993 (94%) | `data/safety/food_establishments.csv` | Active licenses |
+| Flood complaints (311) | 3,486 | 3,483 (99%) | `data/weather/flood_complaints.csv` | 2019-01-01 to 2024-12-31 |
+| Ice complaints (311) | 28,631 | 28,623 (99%) | `data/weather/ice_complaints.csv` | 2019-01-02 to 2024-12-30 |
+
+### Cambridge (data.cambridgema.gov, cambridgegis GitHub)
+
+| Dataset | Records | Valid Coords | File | Data Period |
+|---------|---------|-------------|------|-------------|
+| Buildings with height | 18,234 | 18,234 (WGS84) | `data/cambridge/buildings/buildings.geojson` | 2018 flyover |
+| Streetlight locations | 6,117 | 6,117 (WGS84) | `data/cambridge/streetlights/streetlights.geojson` | Current as of 2025-10 |
+| Tree canopy polygons | 36,266 | 36,266 (WGS84) | `data/cambridge/trees/tree_canopy_2018.topojson` | 2018, TopoJSON (needs conversion) |
+| Crime incidents | 109,214 | 109,209 (~100%) | `data/cambridge/safety/crime_incidents.csv` | 2009-01-01 to 2026-02-28 |
+| Crash records | 16,247 | 8,739 (54%) | `data/cambridge/safety/crash_records.csv` | 2015-01-01 to 2026-02-28 |
+| Flood complaints (311) | 2,222 | 2,222 (100%) | `data/cambridge/weather/flood_complaints.csv` | 2012-02-02 to 2026-03-27 |
+| Ice complaints (311) | 13,652 | 13,652 (100%) | `data/cambridge/weather/ice_complaints.csv` | 2013-02-10 to 2026-03-24 |
+
+---
+
 ## Static Data
 
 ### 1. Buildings with Height

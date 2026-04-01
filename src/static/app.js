@@ -1,8 +1,5 @@
 /**
  * LightMap Boston - Frontend Map Application
- *
- * Interactive map showing shadows (day) and brightness (night)
- * using MapLibre GL JS with CartoDB base tiles.
  */
 
 const BOSTON_CENTER = [-71.065, 42.355];
@@ -10,16 +7,19 @@ const TILES_DAY = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json
 const TILES_NIGHT = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
 let map;
-let currentMode = null;
+let currentMode = "day";
 let shadowData = null;
 let streetlightData = null;
 let businessData = null;
 let buildingData = null;
 let sliderDebounceTimer = null;
 
+function D(msg) { fetch("/api/debug?msg=" + encodeURIComponent(msg)); }
+
 // ── Initialization ──
 
 async function init() {
+    D("init: creating map");
     map = new maplibregl.Map({
         container: "map",
         style: TILES_DAY,
@@ -31,13 +31,26 @@ async function init() {
     map.addControl(new maplibregl.NavigationControl(), "bottom-left");
 
     map.on("load", async () => {
-        await loadStaticData();
-        setupSlider();
-        setupLayerToggles();
-        setupClickInspect();
-        setupCursorInteraction();
-        updateFromSlider();
-        showOnboarding();
+        D("map.load fired");
+        try {
+            await loadStaticData();
+            D("loadStaticData done");
+            setupSlider();
+            setupLayerToggles();
+            setupClickInspect();
+            setupCursorInteraction();
+            D("calling updateFromSlider");
+            await updateFromSlider();
+            D("updateFromSlider done");
+            showOnboarding();
+        } catch (err) {
+            D("INIT ERROR: " + err.message);
+            hideLoading();
+        }
+    });
+
+    map.on("error", (e) => {
+        D("MAP ERROR: " + (e.error ? e.error.message : "unknown"));
     });
 }
 
@@ -45,7 +58,6 @@ async function init() {
 
 function showOnboarding() {
     if (sessionStorage.getItem("lightmap-onboarded")) return;
-
     const el = document.createElement("div");
     el.id = "onboarding";
     el.innerHTML = `
@@ -58,10 +70,7 @@ function showOnboarding() {
         </div>
     `;
     document.body.appendChild(el);
-
-    const escHandler = (e) => {
-        if (e.key === "Escape") dismiss();
-    };
+    const escHandler = (e) => { if (e.key === "Escape") dismiss(); };
     const dismiss = () => {
         el.remove();
         sessionStorage.setItem("lightmap-onboarded", "1");
@@ -74,135 +83,143 @@ function showOnboarding() {
 // ── Data Loading ──
 
 async function loadStaticData() {
+    D("loadStaticData: start");
     showLoading("Loading map data...");
     try {
-        const [slRes, bizRes, bldRes] = await Promise.all([
-            fetch("/api/streetlights"),
-            fetch("/api/businesses"),
-            fetch("/api/buildings"),
-        ]);
-        if (!slRes.ok || !bizRes.ok || !bldRes.ok) throw new Error("Failed to load data");
-        streetlightData = await slRes.json();
-        businessData = await bizRes.json();
+        const bldRes = await fetch("/api/buildings");
+        if (!bldRes.ok) throw new Error("buildings HTTP " + bldRes.status);
         buildingData = await bldRes.json();
+        D("loadStaticData: buildings loaded, " + buildingData.features.length);
     } catch (err) {
-        console.error("Data loading failed:", err);
+        D("loadStaticData ERROR: " + err.message);
         showError("Failed to load map data. Please refresh the page.");
     } finally {
         hideLoading();
     }
 }
 
+async function loadNightData() {
+    if (streetlightData && businessData) return;
+    D("loadNightData: start");
+    showLoading("Loading night data...");
+    try {
+        const [slRes, bizRes] = await Promise.all([
+            fetch("/api/streetlights"),
+            fetch("/api/businesses"),
+        ]);
+        if (!slRes.ok || !bizRes.ok) throw new Error("night data HTTP error");
+        streetlightData = await slRes.json();
+        businessData = await bizRes.json();
+        D("loadNightData: done, sl=" + streetlightData.features.length + " biz=" + businessData.features.length);
+    } catch (err) {
+        D("loadNightData ERROR: " + err.message);
+        showError("Failed to load night data. Please try again.");
+    } finally {
+        hideLoading();
+    }
+}
+
 async function loadShadows(timeStr) {
-    const res = await fetch(`/api/shadows?time=${encodeURIComponent(timeStr)}`);
-    if (!res.ok) throw new Error("Failed to load shadows");
+    D("loadShadows: " + timeStr);
+    const res = await fetch("/api/shadows?time=" + encodeURIComponent(timeStr));
+    if (!res.ok) throw new Error("shadows HTTP " + res.status);
     shadowData = await res.json();
+    D("loadShadows: done, " + shadowData.features.length + " features");
     return shadowData;
 }
 
 // ── Map Layers ──
 
 function addDayLayers() {
-    // Order: shadows (bottom) → buildings (top) so buildings sit on top of shadows
-    if (!map.getSource("shadows")) {
-        map.addSource("shadows", {
-            type: "geojson",
-            data: shadowData || { type: "FeatureCollection", features: [] },
-        });
-        map.addLayer({
-            id: "shadows-fill",
-            type: "fill",
-            source: "shadows",
-            paint: {
-                "fill-color": "#334155",
-                "fill-opacity": 0.35,
-            },
-        });
-    } else {
-        map.getSource("shadows").setData(
-            shadowData || { type: "FeatureCollection", features: [] }
-        );
-    }
+    D("addDayLayers: start");
+    try {
+        if (!map.getSource("shadows")) {
+            map.addSource("shadows", {
+                type: "geojson",
+                data: shadowData || { type: "FeatureCollection", features: [] },
+            });
+            map.addLayer({
+                id: "shadows-fill",
+                type: "fill",
+                source: "shadows",
+                paint: { "fill-color": "#334155", "fill-opacity": 0.35 },
+            });
+        } else {
+            map.getSource("shadows").setData(
+                shadowData || { type: "FeatureCollection", features: [] }
+            );
+        }
 
-    if (!map.getSource("buildings") && buildingData) {
-        map.addSource("buildings", {
-            type: "geojson",
-            data: buildingData,
-        });
-        map.addLayer({
-            id: "buildings-fill",
-            type: "fill",
-            source: "buildings",
-            paint: {
-                "fill-color": "#94a3b8",
-                "fill-opacity": 0.7,
-            },
-        });
-        map.addLayer({
-            id: "buildings-outline",
-            type: "line",
-            source: "buildings",
-            paint: {
-                "line-color": "#475569",
-                "line-width": 0.8,
-            },
-        });
+        if (!map.getSource("buildings") && buildingData) {
+            map.addSource("buildings", {
+                type: "geojson",
+                data: buildingData,
+            });
+            map.addLayer({
+                id: "buildings-fill",
+                type: "fill",
+                source: "buildings",
+                paint: { "fill-color": "#94a3b8", "fill-opacity": 0.7 },
+            });
+            map.addLayer({
+                id: "buildings-outline",
+                type: "line",
+                source: "buildings",
+                paint: { "line-color": "#475569", "line-width": 0.8 },
+            });
+        }
+        D("addDayLayers: done");
+    } catch (err) {
+        D("addDayLayers ERROR: " + err.message);
     }
 }
 
 function addNightLayers() {
-    if (!map.getSource("streetlights")) {
-        map.addSource("streetlights", {
-            type: "geojson",
-            data: streetlightData || { type: "FeatureCollection", features: [] },
-        });
-        map.addLayer({
-            id: "streetlights-heat",
-            type: "heatmap",
-            source: "streetlights",
-            paint: {
-                "heatmap-radius": [
-                    "interpolate", ["linear"], ["zoom"],
-                    10, 4, 14, 12, 18, 24,
-                ],
-                "heatmap-opacity": 0.7,
-                "heatmap-intensity": [
-                    "interpolate", ["linear"], ["zoom"],
-                    10, 0.5, 14, 1, 18, 2,
-                ],
-                "heatmap-color": [
-                    "interpolate", ["linear"], ["heatmap-density"],
-                    0, "rgba(0,0,0,0)",
-                    0.2, "#1e3a5f",
-                    0.4, "#2563eb",
-                    0.6, "#60a5fa",
-                    0.8, "#fbbf24",
-                    1.0, "#ffffff",
-                ],
-            },
-        });
-    }
+    D("addNightLayers: start");
+    try {
+        if (!map.getSource("streetlights")) {
+            map.addSource("streetlights", {
+                type: "geojson",
+                data: streetlightData || { type: "FeatureCollection", features: [] },
+            });
+            map.addLayer({
+                id: "streetlights-heat",
+                type: "heatmap",
+                source: "streetlights",
+                paint: {
+                    "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 4, 14, 12, 18, 24],
+                    "heatmap-opacity": 0.7,
+                    "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 14, 1, 18, 2],
+                    "heatmap-color": [
+                        "interpolate", ["linear"], ["heatmap-density"],
+                        0, "rgba(0,0,0,0)", 0.2, "#1e3a5f", 0.4, "#2563eb",
+                        0.6, "#60a5fa", 0.8, "#fbbf24", 1.0, "#ffffff",
+                    ],
+                },
+            });
+        }
 
-    if (!map.getSource("businesses")) {
-        map.addSource("businesses", {
-            type: "geojson",
-            data: businessData || { type: "FeatureCollection", features: [] },
-        });
-        map.addLayer({
-            id: "businesses-circle",
-            type: "circle",
-            source: "businesses",
-            paint: {
-                "circle-radius": [
-                    "interpolate", ["linear"], ["zoom"],
-                    10, 2, 15, 4, 18, 7,
-                ],
-                "circle-color": "#f97316",
-                "circle-opacity": 0.8,
-                "circle-stroke-width": 0.5,
-                "circle-stroke-color": "#ffffff",
-            },
-        });
+        if (!map.getSource("businesses")) {
+            map.addSource("businesses", {
+                type: "geojson",
+                data: businessData || { type: "FeatureCollection", features: [] },
+            });
+            map.addLayer({
+                id: "businesses-circle",
+                type: "circle",
+                source: "businesses",
+                paint: {
+                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 2, 15, 4, 18, 7],
+                    "circle-color": "#f97316",
+                    "circle-opacity": 0.8,
+                    "circle-stroke-width": 0.5,
+                    "circle-stroke-color": "#ffffff",
+                },
+            });
+        }
+        D("addNightLayers: done");
+    } catch (err) {
+        D("addNightLayers ERROR: " + err.message);
     }
 }
 
@@ -217,6 +234,7 @@ function setLayerVisibility(layerId, visible) {
 async function switchMode(info) {
     const newMode = info.is_day ? "day" : "night";
     const modeChanged = newMode !== currentMode;
+    D("switchMode: newMode=" + newMode + " currentMode=" + currentMode + " changed=" + modeChanged);
 
     if (modeChanged) {
         const newStyle = info.is_day ? TILES_DAY : TILES_NIGHT;
@@ -225,8 +243,21 @@ async function switchMode(info) {
         const bearing = map.getBearing();
         const pitch = map.getPitch();
 
+        D("switchMode: calling setStyle");
         map.setStyle(newStyle);
-        await new Promise((resolve) => map.once("style.load", resolve));
+
+        // Wait for style.load with timeout
+        await new Promise((resolve) => {
+            const timeout = setTimeout(() => {
+                D("switchMode: style.load TIMEOUT after 10s");
+                resolve();
+            }, 10000);
+            map.once("style.load", () => {
+                clearTimeout(timeout);
+                D("switchMode: style.load fired");
+                resolve();
+            });
+        });
 
         map.setCenter(center);
         map.setZoom(zoom);
@@ -247,17 +278,18 @@ async function switchMode(info) {
     }
 
     updateUI(info);
+    D("switchMode: done");
 }
 
 // ── UI Updates ──
 
 function describeSun(altitude) {
     if (altitude <= 0) return "Nighttime";
-    if (altitude < 10) return "Sunrise/sunset — very long shadows";
-    if (altitude < 25) return "Low sun — long shadows";
-    if (altitude < 45) return "Moderate sun — medium shadows";
-    if (altitude < 65) return "High sun — short shadows";
-    return "Overhead — minimal shadows";
+    if (altitude < 10) return "Sunrise/sunset \u2014 very long shadows";
+    if (altitude < 25) return "Low sun \u2014 long shadows";
+    if (altitude < 45) return "Moderate sun \u2014 medium shadows";
+    if (altitude < 65) return "High sun \u2014 short shadows";
+    return "Overhead \u2014 minimal shadows";
 }
 
 function updateUI(info) {
@@ -266,7 +298,7 @@ function updateUI(info) {
     const modeText = info.is_day ? "Shadow Map" : "Brightness Map";
 
     const modeEl = document.getElementById("info-mode");
-    modeEl.textContent = `${modeIcon} ${modeText}`;
+    modeEl.textContent = modeIcon + " " + modeText;
     if (modeEl.dataset.lastMode && modeEl.dataset.lastMode !== modeText) {
         modeEl.classList.add("mode-flash");
         setTimeout(() => modeEl.classList.remove("mode-flash"), 1200);
@@ -277,18 +309,16 @@ function updateUI(info) {
 
     const statsEl = document.getElementById("info-stats");
     if (info.is_day && shadowData && shadowData.metadata) {
-        statsEl.textContent = `${shadowData.metadata.building_count.toLocaleString()} buildings analyzed`;
+        statsEl.textContent = shadowData.metadata.building_count.toLocaleString() + " buildings analyzed";
         statsEl.style.display = "block";
     } else if (!info.is_day && streetlightData) {
-        statsEl.textContent = `${streetlightData.features.length.toLocaleString()} streetlights mapped`;
+        statsEl.textContent = streetlightData.features.length.toLocaleString() + " streetlights mapped";
         statsEl.style.display = "block";
     } else {
         statsEl.style.display = "none";
     }
 
-    const nightEls = ["info-panel", "time-control", "layer-control", "legend"];
-    // MapLibre popup styling handled via CSS class below
-    nightEls.forEach((id) => {
+    ["info-panel", "time-control", "layer-control", "legend"].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("night", isNight);
     });
@@ -296,14 +326,10 @@ function updateUI(info) {
     document.getElementById("legend-day").style.display = info.is_day ? "block" : "none";
     document.getElementById("legend-night").style.display = info.is_day ? "none" : "block";
 
-    document.getElementById("toggle-shadows").closest("label").style.display =
-        info.is_day ? "block" : "none";
-    document.getElementById("toggle-buildings").closest("label").style.display =
-        info.is_day ? "block" : "none";
-    document.getElementById("toggle-streetlights").closest("label").style.display =
-        info.is_day ? "none" : "block";
-    document.getElementById("toggle-businesses").closest("label").style.display =
-        info.is_day ? "none" : "block";
+    document.getElementById("toggle-shadows").closest("label").style.display = info.is_day ? "block" : "none";
+    document.getElementById("toggle-buildings").closest("label").style.display = info.is_day ? "block" : "none";
+    document.getElementById("toggle-streetlights").closest("label").style.display = info.is_day ? "none" : "block";
+    document.getElementById("toggle-businesses").closest("label").style.display = info.is_day ? "none" : "block";
 }
 
 function formatTime(isoStr) {
@@ -314,7 +340,7 @@ function formatTime(isoStr) {
     });
 }
 
-// ── Time Slider (with debounce) ──
+// ── Time Slider ──
 
 function setupSlider() {
     const slider = document.getElementById("time-slider");
@@ -323,8 +349,6 @@ function setupSlider() {
         clearTimeout(sliderDebounceTimer);
         sliderDebounceTimer = setTimeout(() => updateFromSlider(), 300);
     });
-
-    // Initialize slider to current hour
     const now = new Date();
     const currentMinutes = now.getHours() * 60 + Math.floor(now.getMinutes() / 30) * 30;
     slider.value = currentMinutes;
@@ -337,31 +361,40 @@ function updateSliderLabel(minutes) {
     const ampm = h >= 12 ? "PM" : "AM";
     const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
     document.getElementById("slider-label").textContent =
-        `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+        h12 + ":" + String(m).padStart(2, "0") + " " + ampm;
 }
 
 async function updateFromSlider() {
     const minutes = parseInt(document.getElementById("time-slider").value);
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
-
     const today = new Date();
-    const timeStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    const timeStr = today.getFullYear() + "-" +
+        String(today.getMonth() + 1).padStart(2, "0") + "-" +
+        String(today.getDate()).padStart(2, "0") + "T" +
+        String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
 
+    D("updateFromSlider: " + timeStr);
     showLoading("Updating...");
 
     try {
-        const infoRes = await fetch(`/api/info?time=${encodeURIComponent(timeStr)}`);
-        if (!infoRes.ok) throw new Error("Failed to load info");
+        D("updateFromSlider: fetching info");
+        const infoRes = await fetch("/api/info?time=" + encodeURIComponent(timeStr));
+        if (!infoRes.ok) throw new Error("info HTTP " + infoRes.status);
         const info = await infoRes.json();
+        D("updateFromSlider: info mode=" + info.mode);
 
         if (info.is_day) {
             await loadShadows(timeStr);
+        } else {
+            await loadNightData();
         }
 
+        D("updateFromSlider: calling switchMode");
         await switchMode(info);
+        D("updateFromSlider: complete");
     } catch (err) {
-        console.error("Update failed:", err);
+        D("updateFromSlider ERROR: " + err.message);
         showError("Connection lost. Please try again.");
     } finally {
         hideLoading();
@@ -390,7 +423,6 @@ function setupLayerToggles() {
 
 function setupCursorInteraction() {
     const interactiveLayers = ["shadows-fill", "buildings-fill", "businesses-circle"];
-
     map.on("mousemove", (e) => {
         const layers = interactiveLayers.filter((id) => map.getLayer(id));
         if (layers.length === 0) return;
@@ -401,18 +433,15 @@ function setupCursorInteraction() {
 
 // ── Click to Inspect ──
 
-const mapPopup = new maplibregl.Popup({
-    closeButton: false,
-    maxWidth: "220px",
-    className: "",
-});
+let mapPopup = null;
 
 function setupClickInspect() {
+    mapPopup = new maplibregl.Popup({ closeButton: false, maxWidth: "220px" });
+
     map.on("click", (e) => {
         const layers = ["shadows-fill", "buildings-fill", "businesses-circle"].filter(
             (id) => map.getLayer(id)
         );
-
         const features = map.queryRenderedFeatures(e.point, { layers });
         let html = "";
 
@@ -421,24 +450,22 @@ function setupClickInspect() {
             if (f.layer.id === "shadows-fill") {
                 const height = Math.round(f.properties.height_ft);
                 const shadowLen = Math.round(f.properties.shadow_len_m);
-                html = `<b>Shaded area</b><br>${height} ft building<br>Shadow extends ~${shadowLen} m`;
+                html = "<b>Shaded area</b><br>" + height + " ft building<br>Shadow extends ~" + shadowLen + " m";
             } else if (f.layer.id === "buildings-fill") {
                 const height = f.properties.BLDG_HGT_2010;
                 if (height) {
                     const heightM = Math.round(height * 0.3048);
                     const stories = Math.round(height / 12);
-                    html = `<b>Building</b><br>${Math.round(height)} ft (${heightM} m)<br>~${stories} stories`;
+                    html = "<b>Building</b><br>" + Math.round(height) + " ft (" + heightM + " m)<br>~" + stories + " stories";
                 } else {
-                    html = `<b>Building</b><br>Height data unavailable`;
+                    html = "<b>Building</b><br>Height data unavailable";
                 }
             } else if (f.layer.id === "businesses-circle") {
-                const name = f.properties.name || "Unknown";
-                html = `<b>${name}</b>`;
+                html = "<b>" + (f.properties.name || "Unknown") + "</b>";
             }
         } else if (currentMode === "night" && streetlightData) {
             const clickLng = e.lngLat.lng;
             const clickLat = e.lngLat.lat;
-            // Skip if outside Boston bounds
             if (clickLat < 42.22 || clickLat > 42.40 || clickLng < -71.19 || clickLng > -70.92) {
                 mapPopup.remove();
                 return;
@@ -456,13 +483,10 @@ function setupClickInspect() {
             else if (nearbyCount >= 8) { level = "Moderately lit"; desc = "Some visibility"; }
             else if (nearbyCount >= 3) { level = "Dimly lit"; desc = "Limited visibility"; }
             else { level = "Dark area"; desc = "Very low visibility"; }
-            html = `<b>${level}</b><br>${desc}<br><span style="opacity:0.7">${nearbyCount} streetlights nearby</span>`;
+            html = "<b>" + level + "</b><br>" + desc + "<br><span style='opacity:0.7'>" + nearbyCount + " streetlights nearby</span>";
         }
 
-        if (!html) {
-            mapPopup.remove();
-            return;
-        }
+        if (!html) { mapPopup.remove(); return; }
 
         mapPopup.remove();
         mapPopup.setLngLat(e.lngLat).setHTML(html);
@@ -475,7 +499,7 @@ function setupClickInspect() {
     });
 }
 
-// ── Loading Indicator ──
+// ── Loading / Error ──
 
 function showLoading(text) {
     let el = document.querySelector(".loading-indicator");
@@ -493,8 +517,6 @@ function hideLoading() {
     const el = document.querySelector(".loading-indicator");
     if (el) el.style.display = "none";
 }
-
-// ── Error Display ──
 
 function showError(text) {
     let el = document.querySelector(".error-toast");

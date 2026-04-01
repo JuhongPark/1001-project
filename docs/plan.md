@@ -4,9 +4,9 @@
 
 ## Summary
 
-A map that shows **where shade is during the day** and **where light is at night** in Boston, updated in real time based on sun position, building geometry, streetlights, and weather.
+A map that shows **where shade is during the day** and **where light is at night** in Boston and Cambridge, updated in real time based on sun position, building geometry, streetlights, and weather.
 
-**Scope:** City of Boston only. Cambridge and other municipalities are out of scope (future work).
+**Scope:** City of Boston and City of Cambridge.
 
 ---
 

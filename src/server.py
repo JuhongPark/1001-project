@@ -138,6 +138,13 @@ def get_buildings():
     return _building_geojson_cache
 
 
+@app.get("/api/debug")
+def debug_log(msg: str = Query("")):
+    """Receive debug messages from frontend."""
+    print(f"[FRONTEND] {msg}")
+    return {"ok": True}
+
+
 @app.get("/")
 def index():
     return FileResponse(os.path.join(STATIC, "index.html"))
