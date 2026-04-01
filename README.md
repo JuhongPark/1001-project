@@ -2,4 +2,6 @@
 
 Term project for MIT 1.001 (Abel Sanchez, John R. Williams).
 
-Direction selected: an AI system that maps urban environment and public health, in Boston and Cambridge, Massachusetts. Arrived at from the healthcare AI systems exploration and a faculty pivot toward a more intuitive, map-based direction. See `docs/research/`.
+Direction selected: an AI system that maps urban environment and public health in Boston and Cambridge, Massachusetts. Implementation begins with an initial project plan — see `docs/plan.md`.
+
+Exploration trail in `docs/research/`.

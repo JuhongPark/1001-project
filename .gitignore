@@ -211,3 +211,6 @@ __marimo__/
 
 # Temporary research workspace
 .tmp/
+
+# Data files (downloaded via scripts, not committed)
+data/
