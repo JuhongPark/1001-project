@@ -19,7 +19,8 @@ let floodData = null;
 let iceData = null;
 let crimeNightData = null;
 
-function D(msg) { fetch("/api/debug?msg=" + encodeURIComponent(msg)); }
+var DEBUG = (location.search.indexOf("debug") !== -1);
+function D(msg) { if (DEBUG) fetch("/api/debug?msg=" + encodeURIComponent(msg)); }
 
 // ── Initialization ──
 
@@ -165,7 +166,7 @@ function addDayLayers() {
                 id: "shadows-fill",
                 type: "fill",
                 source: "shadows",
-                paint: { "fill-color": "#334155", "fill-opacity": 0.35 },
+                paint: { "fill-color": "#1e293b", "fill-opacity": 0.45 },
             });
         } else {
             map.getSource("shadows").setData(
@@ -300,8 +301,43 @@ async function switchMode(info) {
         setLayerVisibility("businesses-circle", document.getElementById("toggle-businesses").checked);
     }
 
+    if (modeChanged) {
+        restoreOptionalLayers();
+    }
+
     updateUI(info);
     D("switchMode: done");
+}
+
+function restoreOptionalLayers() {
+    if (document.getElementById("toggle-flood").checked && floodData) {
+        toggleHazardLayer("flood", true);
+    }
+    if (document.getElementById("toggle-ice").checked && iceData) {
+        toggleHazardLayer("ice", true);
+    }
+    if (document.getElementById("toggle-crime").checked && crimeNightData) {
+        toggleHazardLayer("crime", true);
+    }
+    if (document.getElementById("toggle-trees").checked && canopyData) {
+        if (!map.getSource("canopy-source")) {
+            map.addSource("canopy-source", { type: "geojson", data: canopyData });
+            map.addLayer({
+                id: "canopy-heat",
+                type: "heatmap",
+                source: "canopy-source",
+                paint: {
+                    "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 10, 4, 14, 10, 18, 20],
+                    "heatmap-opacity": 0.4,
+                    "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 10, 0.3, 14, 0.6, 18, 1],
+                    "heatmap-color": [
+                        "interpolate", ["linear"], ["heatmap-density"],
+                        0, "rgba(0,0,0,0)", 0.3, "#bbf7d0", 0.6, "#4ade80", 1.0, "#16a34a",
+                    ],
+                },
+            });
+        }
+    }
 }
 
 // ── UI Updates ──
@@ -341,7 +377,7 @@ function updateUI(info) {
         statsEl.style.display = "none";
     }
 
-    ["info-panel", "time-control", "layer-control", "legend", "weather-panel"].forEach((id) => {
+    ["info-panel", "time-control", "layer-control", "legend", "weather-panel", "about-toggle"].forEach((id) => {
         const el = document.getElementById(id);
         if (el) el.classList.toggle("night", isNight);
     });
@@ -400,7 +436,7 @@ async function updateFromSlider() {
         String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
 
     D("updateFromSlider: " + timeStr);
-    showLoading("Updating...");
+    showLoading("Computing shadows...");
 
     try {
         D("updateFromSlider: fetching info");

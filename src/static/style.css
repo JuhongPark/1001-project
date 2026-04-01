@@ -191,6 +191,10 @@ body {
     line-height: 1.4;
 }
 
+.night .legend-hint {
+    color: #cbd5e1;
+}
+
 .gradient-bar {
     height: 10px;
     border-radius: 4px;
@@ -289,6 +293,15 @@ body {
 
 #about-toggle:hover {
     background: #f1f5f9;
+}
+
+#about-toggle.night {
+    background: #334155;
+    color: #e2e8f0;
+}
+
+#about-toggle.night:hover {
+    background: #475569;
 }
 
 #about-panel {
