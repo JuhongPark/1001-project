@@ -274,7 +274,58 @@ About panel discloses all data sources, record counts, data periods, and known l
 - [x] Hazard layer persistence across mode switches
 - [x] Loading indicators and error toasts
 
-### Phase 5: Video Production
+### Phase 5: Submission Readiness
+Priorities ordered by grading impact. Each item tagged with the rubric criteria it targets.
+
+#### P0 — README (Design, Effort)
+- [ ] Installation instructions (Python 3.12, `pip install -r requirements.txt`, `uvicorn`)
+- [ ] How to run (`uvicorn src.server:app`) with expected output
+- [ ] Screenshot: day mode + night mode side by side
+- [ ] Embed final video (YouTube link)
+- [ ] Data source attribution list
+- [ ] Known limitations section
+
+#### P1 — Video Production (Video 40pts)
+- [ ] Proposal video
+- [ ] Midpoint video
+- [ ] Final video script and storyboard
+- [ ] Final video recording and upload to YouTube
+
+**Final video storyboard draft:**
+
+| # | Segment (~duration) | What to show | Why it matters |
+|---|---------------------|--------------|----------------|
+| 1 | Problem (30s) | Hot summer sidewalk photo vs dark street photo. "Where is shade right now? Where is light tonight?" | Hook the viewer with a relatable problem. |
+| 2 | Solution overview (20s) | Full-screen map, zoom out to show Boston + Cambridge coverage. "LightMap Boston — shade by day, light by night, on one map." | Establish what the tool is in one sentence. |
+| 3 | Daytime demo (60s) | Drag time slider from morning to afternoon. Shadows grow and rotate. Click a building: "42 ft, shadow extends ~12m." Toggle tree canopy on. | Show the core computation — shadows moving is the most visually impressive feature. |
+| 4 | Day → night transition (20s) | Slide past sunset. Map switches to Dark Matter theme. Streetlight heatmap appears. | Demonstrate the automatic mode switch — this is the "wow" moment. |
+| 5 | Nighttime demo (40s) | Click a well-lit area vs a dark area. Show brightness classification. Toggle businesses. Toggle crime density. | Show the nighttime value proposition — unique vs all competitors. |
+| 6 | Weather + hazards (30s) | Show weather panel (temperature, UV, AQI). Toggle flood overlay, then ice overlay. "Based on 42,000+ historical 311 complaints." | Demonstrate the third dimension (weather hazards). |
+| 7 | Honest uncertainty (15s) | Show About panel: data sources, limitations. "Building heights are from 2010 — new construction is not reflected." | Show intellectual honesty — differentiator from polished-but-opaque tools. |
+| 8 | Technical highlights (30s) | Brief architecture overview. "46K buildings, 80K streetlights, pvlib + Shapely shadow engine, cached per 30-min interval." | Address Complexity and Design criteria directly. |
+| 9 | Competitive landscape (15s) | Side-by-side: Shadowmap.org (day only), ShadeMap (day only), LightMap (day + night + hazards). | Demonstrate awareness and differentiation. |
+| 10 | Close (10s) | Tagline: "Find shade by day. Find light by night." GitHub link. | Clean ending. |
+
+Total: ~4.5 minutes. Target: under 5 minutes.
+
+#### P2 — Honest Uncertainty Implementation (Complexity, Design)
+- [ ] Click-to-inspect in low-data areas shows "Limited data in this area" instead of silence
+- [ ] Tree canopy layer label: "Canopy data from 2018-2019"
+- [ ] Hazard layers show data period in legend: "Based on 311 reports, 2019-2024"
+- [ ] Nighttime click in area outside Boston/Cambridge bounds: "No streetlight data for this area"
+
+#### P3 — Shadow Validation (Complexity)
+- [ ] Compare shadow output against satellite imagery for 2-3 known locations
+- [ ] Screenshot comparison: computed shadow vs Google Earth shadow at same time/date
+- [ ] Document validation results in About panel or plan
+
+#### P4 — Basic Tests (Design)
+- [ ] Unit test: `compute_shadow()` with known inputs → expected shadow length
+- [ ] Unit test: `get_sun_position()` against NOAA reference values
+- [ ] Unit test: sunrise/sunset boundary (altitude ≈ 0) returns correct mode
+- [ ] Integration test: `/api/shadows` returns valid GeoJSON with features
+
+### Phase 6: Video Production
 - [ ] Proposal video
 - [ ] Midpoint video
 - [ ] Final video
