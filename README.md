@@ -2,6 +2,6 @@
 
 Term project for MIT 1.001 (Abel Sanchez, John R. Williams).
 
-LightMap — a real-time web map of shade and lighting across Boston and Cambridge, Massachusetts. Rendering and UI polished: darker shadows, night-mode About button, hazard persistence, debug toggle.
+LightMap — a real-time web map of shade during the day and lighting at night across Boston and Cambridge, Massachusetts. Computed from sun position, building geometry, streetlights, tree canopy, and weather.
 
-See `docs/`.
+Comparative analysis against Shadowmap.org captured in `docs/competitive-research.md`. Full research and planning trail in `docs/`.

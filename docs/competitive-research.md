@@ -19,18 +19,36 @@
 - **Weaknesses:** Inverted time slider is unintuitive. Viewport-only rendering is confusing.
 
 ### Shadowmap (shadowmap.org)
-- **What:** 3D sunlight visualization with Google 3D Buildings. Targets architects, solar professionals.
-- **Tech:** Three.js, 3D rendering, Draco compression.
-- **Pricing:** Freemium. Free restricts to today's date.
-- **Similarity:** Professional 3D shadow tool. No nighttime or weather layers.
+- **What:** Global real-time 3D sunlight and shadow simulation. Targets architects, solar professionals, real estate.
+- **Origin:** Georg Molzer's 2020 diploma thesis at TU Wien (164 pages). Founded Shadowmap Technologies GmbH in 2021.
+- **Scale:** ~300K monthly users. Enterprise clients include Redfin, Willhaben, Von Poll, Neho.
+- **Tech:** Three.js (WebGL), GPU Shadow Mapping with Cascaded Shadow Maps (CSM), NOAA-based sun position algorithm.
+- **Data:** OpenStreetMap buildings (free), Google 3D Tiles (paid), LOD2 government datasets, Nextzen/Mapbox/ESRI terrain. Draco compression (Vienna: 2GB → 48MB).
+- **Pricing:** Freemium. Free = today only. Explorer $2.50/mo (date change). Home $8.33/mo (satellite, weather). Studio $50/mo (solar analytics, model upload). Enterprise = custom.
+- **Similarity:** Closest to LightMap's daytime layer. No nighttime or weather layers.
+
+**Key Features Beyond Shadow:**
+- 3D Solar Analytics: irradiance (kWh/m²), direct vs diffuse radiation, 20-year weather data
+- Custom 3D model upload (IFC, OBJ, FBX, GLB) for architectural what-if scenarios
+- Scene editing: adjust building heights, add/remove trees, place structures
+- 14-day weather and UV forecast (paid)
+- White-label B2B embedding for real estate platforms
+- Listed in Bellingcat's OSINT toolkit for forensic shadow analysis
 
 **UI/UX Analysis:**
 - Full-screen 3D map with full camera freedom (tilt to ground level)
 - Time slider at bottom with "24H" animation button
+- Seasonal preset buttons (solstices, equinoxes) for quick navigation
+- Sun path arc rendered in 3D scene with compass overlay
 - Realistic ambient lighting adjusts automatically (dawn/dusk vs noon)
 - Left-click buildings to adjust height/visibility
-- **Strengths:** True 3D is visually impressive. 24-hour animation is useful.
-- **Weaknesses:** Controls take too much screen space ("clunky and outdated" per reviews). Not collapsible without paid subscription. Mobile rendering quality inconsistent.
+- Localized in English, German, French
+- **Strengths:** True 3D is visually impressive. 24-hour animation is useful. Time-integrated shadow accumulation maps (LBS 2019 paper). Sun path visualization is intuitive.
+- **Weaknesses:** Controls take too much screen space ("clunky and outdated" per reviews). Not collapsible without paid subscription. Mobile rendering quality inconsistent. Free tier too restrictive (today-only lock).
+
+**Academic References:**
+- Thesis: "Interactive Web-based 3D Solar Shadow Map" (TU Wien, 2020)
+- Paper: "Interactive 3D Time-Integrated Solar Shadow Maps" (LBS 2019 Conference)
 
 ---
 
