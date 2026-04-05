@@ -184,3 +184,140 @@ anthropic        # Claude API for AI guide agent (optional)
 ```
 
 Existing: pvlib, shapely, pandas, folium (keep for quick testing)
+
+---
+
+## Weather Features: Rain & Snow (Feasibility Research)
+
+Research conducted 2026-04-05. All APIs verified live.
+
+### Priority Ranking
+
+| Priority | Feature | Effort | Impact | Status |
+|----------|---------|--------|--------|--------|
+| 1 | Radar overlay (RainViewer tiles) | Easy (~20 lines JS) | HIGH | TODO |
+| 2 | Precipitation forecast timeline | Medium (~80 lines) | HIGH | TODO |
+| 3 | Auto-show ice layer when freezing | Easy (~5 lines) | MEDIUM | TODO |
+| 4 | FEMA flood zone polygons | Medium (static GeoJSON) | MEDIUM | TODO |
+| 5 | Rain/snow visual indicator on map | Easy (CSS) | LOW-MEDIUM | TODO |
+| 6 | Historical precipitation analysis | Hard (data science) | LOW | SKIP |
+
+### Feature 1: Real-time Rain Radar Overlay
+
+Show live precipitation radar on the map as a raster tile layer.
+
+**Primary: RainViewer API** (free, no key)
+- Index endpoint: `https://api.rainviewer.com/public/weather-maps.json`
+- Tile URL: `https://tilecache.rainviewer.com{path}/256/{z}/{x}/{y}/2/1_1.png`
+- Returns 13 past radar frames (10-min intervals, ~2 hours) — supports animation
+- Standard XYZ raster tiles, transparent background, direct MapLibre integration
+
+**Backup: IEM NEXRAD** (free, no key)
+- Tile URL: `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png`
+- Always returns latest NWS base reflectivity — no API call needed for tile path
+- Higher resolution US radar data
+
+**Implementation:**
+```javascript
+map.addSource('rainviewer-radar', {
+    type: 'raster',
+    tiles: ['https://tilecache.rainviewer.com' + path + '/256/{z}/{x}/{y}/2/1_1.png'],
+    tileSize: 256
+});
+map.addLayer({
+    id: 'radar-layer', type: 'raster',
+    source: 'rainviewer-radar',
+    paint: { 'raster-opacity': 0.5 }
+});
+```
+
+### Feature 2: Precipitation Forecast Timeline
+
+Show "rain in 2 hours" using hourly forecast data.
+
+**Open-Meteo Hourly Forecast** (already in use, just add params):
+```
+https://api.open-meteo.com/v1/forecast?latitude=42.36&longitude=-71.06
+  &hourly=precipitation_probability,precipitation,rain,snowfall,weather_code
+```
+- Returns 48 hours of hourly data
+- Fields: `precipitation_probability` (%), `precipitation` (mm), `rain` (mm), `snowfall` (cm), `weather_code` (WMO)
+- Free, no key, updates every 1-3 hours
+
+**NWS Hourly Forecast** (supplementary):
+```
+https://api.weather.gov/gridpoints/BOX/71,90/forecast/hourly
+```
+- Returns `shortForecast` text, `probabilityOfPrecipitation` (%), `temperature`
+- Free, no key, updates roughly hourly
+
+**UI:** Compact timeline bar below weather panel — each hour colored by precipitation probability (green=clear, yellow=chance, red=likely).
+
+### Feature 3: Auto-show Ice Layer When Freezing
+
+Automatically toggle the existing ice heatmap (42K 311 complaints) when temperature drops below freezing.
+
+- Already have: `/api/hazards/ice` endpoint, `is_freezing` flag in weather data
+- Implementation: `if (weatherData.is_freezing) toggleHazardLayer("ice", true);`
+- Add banner: "Below freezing — these areas have historically reported icy conditions"
+- ~5 lines of JS
+
+### Feature 4: FEMA Flood Zone Polygons
+
+Add authoritative flood zone boundaries as polygon overlays alongside existing 311 heatmap.
+
+**Climate Ready Boston Sea Level Rise** (free, GeoJSON via ArcGIS REST):
+```
+https://services.arcgis.com/sFnw0xNflSi8J0uh/arcgis/rest/services/
+  Climate_Ready_Boston_Sea_Level_Rise_Inundation/FeatureServer/{layer}/query?where=1=1&f=geojson
+```
+- 9 layers: 9"/21"/36" sea level rise x 10% annual / 1% annual / high tide
+- Layer 6 (9" SLR, 10% annual) is the most near-term useful
+
+**FEMA Official Flood Zones** (free, GeoJSON via ArcGIS REST):
+```
+https://services.arcgis.com/sFnw0xNflSi8J0uh/arcgis/rest/services/
+  FEMA_2009_DFIRM_100YR_500YR_Clipped_Flood_Zones_Metro_Boston/FeatureServer/0/query?where=1=1&f=geojson
+```
+- 100-year and 500-year flood zones
+
+**Strategy:** Download once at build time, save as static GeoJSON, serve from FastAPI. Show FEMA zones as toggleable layer; highlight + 311 hotspots when actively raining.
+
+### Feature 5: Rain/Snow Visual Indicator
+
+Visual feedback on the map when precipitation is active.
+
+- Subtle blue tint overlay or CSS particle animation when `is_raining` is true
+- Snow: white particles when `weather_code` indicates snowfall (71/73/75/85/86)
+- No new data layer needed — purely UI effect on existing weather state
+
+### Feature 6: Historical Precipitation — SKIP
+
+- Open-Meteo Archive API exists (`https://archive-api.open-meteo.com/v1/archive`) but returns one grid cell for all of Boston — no neighborhood-level resolution
+- 311 flood complaints (7.9K) already capture "where flooding happens" with actual location data
+- Not worth the effort for a map feature; better as an About panel statistic
+
+### WMO Weather Codes Reference
+
+| Code | Condition | Action |
+|------|-----------|--------|
+| 51/53/55 | Drizzle (light/moderate/dense) | Show rain indicator |
+| 61/63/65 | Rain (slight/moderate/heavy) | Show rain indicator + radar |
+| 66/67 | Freezing rain | Show rain + ice warning |
+| 71/73/75 | Snowfall (slight/moderate/heavy) | Show snow indicator |
+| 77 | Snow grains | Show snow indicator |
+| 80-82 | Rain showers | Show rain indicator + radar |
+| 85/86 | Snow showers | Show snow indicator |
+| 95/96/99 | Thunderstorm | Show rain indicator + radar + alert |
+
+### Additional Data Sources Identified
+
+| Source | URL | Format | Cost |
+|--------|-----|--------|------|
+| RainViewer API | `https://api.rainviewer.com/public/weather-maps.json` | XYZ tiles | Free |
+| IEM NEXRAD | `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png` | XYZ tiles | Free |
+| Climate Ready Boston | ArcGIS FeatureServer (see above) | GeoJSON | Free |
+| FEMA Flood Zones | ArcGIS FeatureServer (see above) | GeoJSON | Free |
+| Cambridge FloodViewer | `https://www.cambridgema.gov/services/floodmap` | GIS | Free |
+| MassGIS FEMA NFHL | `https://www.mass.gov/info-details/massgis-data-fema-national-flood-hazard-layer` | Shapefile (192MB) | Free |
+| Open-Meteo Archive | `https://archive-api.open-meteo.com/v1/archive` | JSON | Free |
