@@ -118,3 +118,89 @@ All datasets downloaded on **2026-04-01**.
 - **Filter:** reason contains "icy" or "ice" or "slippery"
 - **Used for:** Winter overlay
 - **Limitation:** Pattern-based, not real-time
+
+## Rain & Snow Data Sources
+
+Verified working on 2026-04-05. All free, no API keys required.
+
+### 11. Rain Radar (Real-time)
+- **Source:** RainViewer API
+- **Auth:** None required
+- **Index endpoint:** `https://api.rainviewer.com/public/weather-maps.json`
+- **Tile URL:** `https://tilecache.rainviewer.com{path}/256/{z}/{x}/{y}/2/1_1.png`
+- **Format:** XYZ raster tiles (256x256 PNG, transparent background)
+- **Coverage:** Global composite radar
+- **Update frequency:** Every 10 minutes, returns ~13 past frames (~2 hours of history)
+- **Used for:** Real-time precipitation overlay on map
+- **Limitation:** Nowcast frames intermittently available. No historical lookback beyond ~2 hours.
+
+### 12. Rain Radar Backup (Real-time)
+- **Source:** Iowa Environmental Mesonet (IEM) NEXRAD
+- **Auth:** None required
+- **Tile URL:** `https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png`
+- **Format:** XYZ raster tiles (256x256 RGBA PNG)
+- **Coverage:** Continental US (NWS base reflectivity)
+- **Update frequency:** Real-time, always returns latest composite
+- **Used for:** Fallback if RainViewer is unavailable
+- **Note:** Static URL, no API call needed to get tile path
+
+### 13. Precipitation Forecast (Hourly)
+- **Source:** Open-Meteo Forecast API (same base as #7)
+- **Auth:** None required
+- **Endpoint:** `https://api.open-meteo.com/v1/forecast?latitude=42.36&longitude=-71.06&hourly=precipitation_probability,precipitation,rain,snowfall,weather_code&forecast_days=2`
+- **Format:** JSON
+- **Fields:** `precipitation_probability` (%), `precipitation` (mm), `rain` (mm), `snowfall` (cm), `weather_code` (WMO)
+- **Coverage:** 48 hours of hourly data
+- **Update frequency:** Every 1-3 hours
+- **Used for:** "Rain in 2 hours" forecast timeline
+- **Verified:** 48 data points returned, 7/48 hours showed precipitation > 0 in test
+
+### 14. FEMA Flood Zones (Metro Boston)
+- **Source:** FEMA via Boston ArcGIS
+- **Auth:** None required
+- **Endpoint:** `https://services.arcgis.com/sFnw0xNflSi8J0uh/arcgis/rest/services/FEMA_2009_DFIRM_100YR_500YR_Clipped_Flood_Zones_Metro_Boston/FeatureServer/0/query?where=1=1&outFields=*&f=geojson`
+- **Format:** GeoJSON (Polygon)
+- **Key fields:** `FLD_ZONE` (AE, X, etc.), `Flood_Zone` (100 YR Flood Zone, 500 YR Flood Zone)
+- **Coverage:** Metro Boston (100-year and 500-year flood zones)
+- **Used for:** Authoritative flood zone polygon overlay
+- **Note:** Must include `outFields=*` or properties return null
+
+### 15. Climate Ready Boston Sea Level Rise Inundation
+- **Source:** City of Boston via ArcGIS
+- **Auth:** None required
+- **Endpoint:** `https://services.arcgis.com/sFnw0xNflSi8J0uh/arcgis/rest/services/Climate_Ready_Boston_Sea_Level_Rise_Inundation/FeatureServer/{layer}/query?where=1=1&outFields=*&f=geojson`
+- **Format:** GeoJSON (MultiPolygon)
+- **Layers:** 0-8 representing different scenarios:
+  - Layer 0: 21" SLR, 10% annual flood
+  - Layer 1: 21" SLR, 1% annual flood
+  - Layer 2: 21" SLR, high tide
+  - Layer 6: 9" SLR, 10% annual flood (near-term, recommended)
+  - Layer 7: 9" SLR, 1% annual flood
+  - Layer 8: 9" SLR, high tide
+- **Used for:** Sea level rise flood scenario overlay
+- **Note:** Properties contain only `Shape_Leng` and `Shape_Area`; scenario info is encoded in layer index
+
+### WMO Weather Codes (Rain/Snow)
+
+| Code | Condition | Map Action |
+|------|-----------|------------|
+| 51/53/55 | Drizzle (light/moderate/dense) | Rain indicator |
+| 61/63/65 | Rain (slight/moderate/heavy) | Rain indicator + radar |
+| 66/67 | Freezing rain | Rain + ice warning |
+| 71/73/75 | Snowfall (slight/moderate/heavy) | Snow indicator |
+| 77 | Snow grains | Snow indicator |
+| 80-82 | Rain showers | Rain indicator + radar |
+| 85/86 | Snow showers | Snow indicator |
+| 95/96/99 | Thunderstorm | Rain indicator + radar + alert |
+
+## 311 Complaint Data Verification (2026-04-05)
+
+| File | Records | Valid Coords | Out-of-bounds |
+|------|---------|-------------|---------------|
+| Boston flood complaints | 3,486 | 3,483 (99.9%) | 3 |
+| Boston ice complaints | 28,631 | 28,623 (99.97%) | 8 |
+| Cambridge flood complaints | 2,222 | 2,222 (100%) | 0 |
+| Cambridge ice complaints | 13,652 | 13,652 (100%) | 0 |
+| **Total** | **47,991** | **47,980** | **11** |
+
+Coordinate ranges: lat 42.23-42.40, lon -71.19 to -70.97 (within Boston/Cambridge bounds).
