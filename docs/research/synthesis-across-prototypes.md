@@ -16,9 +16,9 @@ This document steps back from P1, P2, and P3 individually and looks at what they
 
 Three different problems, three different audiences. On the surface they look like unrelated design exercises.
 
-## MedCombo Prototype Idea
+## MedCombo
 
-MedCombo was evaluated during the same topic-selection phase as a medication-combination analysis prototype idea.
+[MedCombo](https://github.com/JuhongPark/medcombo) was started during the same topic-selection phase as a related medication-combination analysis project and was later developed further as a separate project.
 It explored reviewing combinations of medicines for possible drug-drug interaction concerns, duplicated ingredients, overlapping therapeutic classes, and cases where pharmacist or clinician review would be appropriate.
 
 ## Recurring Architectural Commitments

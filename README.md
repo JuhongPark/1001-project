@@ -6,7 +6,7 @@ A graduate-level term project for MIT 1.001: Engineering Computation and Data Sc
 
 Several directions were considered for the 1.001 term project.
 Healthcare AI systems, an area of interest, became the direction pursued further.
-MedCombo, a medication-combination analysis prototype idea, was evaluated during this phase as one possible topic for the 1.001 project.
+[MedCombo](https://github.com/JuhongPark/medcombo), a related medication-combination analysis project, was started during this phase as part of the 1.001 healthcare AI exploration and was later developed further as a separate project.
 It explored whether software could help review combinations of medicines by surfacing possible drug interaction concerns, duplicated ingredients, overlapping therapeutic classes, and cases where pharmacist or clinician review would be appropriate.
 During that exploration, faculty feedback suggested pursuing a more intuitive direction; the search then continued within healthcare for something that could be realized through map-based visualization.
 
@@ -22,7 +22,7 @@ The direction selected was an AI system that maps urban environment and public h
 ### Healthcare AI systems exploration (March 22 – 31)
 - Mar 22 — Landscape survey of healthcare AI systems.
 - Mar 23 – 28 — Candidate directions within healthcare AI systems explored. See `docs/research/`.
-- Mar 23 – 28 — MedCombo evaluated as a medication-combination analysis prototype idea during topic selection.
+- Mar 23 – 28 — [MedCombo](https://github.com/JuhongPark/medcombo) started alongside the healthcare AI topic-selection work as a medication-combination analysis project and was later developed further.
 - Mar 29 — Synthesis across the exploration.
 - Mar 30 — Faculty review session. Feedback toward a more intuitive direction.
 - Mar 30 – 31 — Map-based healthcare concepts surveyed. Urban environment × public health mapping selected.
