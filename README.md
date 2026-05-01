@@ -35,13 +35,15 @@ The direction selected was an AI system that maps urban environment and public h
 
 ## Repository layout
 
-- `docs/research/` — landscape survey, candidate-direction notes, synthesis, faculty feedback, map-based concept survey
-- `docs/plan.md` — project plan
-- `docs/prototyping-plan.md` — prototyping plan
-- `docs/competitive-research.md` — competitive analysis
-- `docs/data-catalog.md` — data sources
-- `docs/prototype-day.html`, `docs/prototype-night.html` — early prototype maps
-- `src/` — shadow engine and FastAPI backend
+- `docs/README.md` — documentation index
+- `docs/plan.md` — final LightMap project plan
+- `docs/prototyping-plan.md` — prototype implementation plan
+- `docs/data-catalog.md` — data source notes and verification
+- `docs/research/` — healthcare AI exploration, topic-selection research, synthesis, and faculty feedback
+- `docs/specs/mit-gdc/` — course assignment materials
+- `docs/prototype.html`, `docs/prototype-day.html`, `docs/prototype-night.html` — early prototype maps
+- `src/` — shadow engine, FastAPI backend, and static web app
+- `data/` — local downloaded datasets, ignored by git
 
 ## Continuation
 
