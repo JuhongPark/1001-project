@@ -12,7 +12,7 @@ During that exploration, faculty feedback suggested pursuing a more intuitive di
 
 ## Final Project Direction
 
-The direction selected was an AI system that maps urban environment and public health. The result is LightMap — a real-time map of shade during the day and lighting at night in Boston and Cambridge, Massachusetts, computed from sun position, building geometry, streetlights, tree canopy, and weather. It approaches healthcare AI systems from a preventive public-health angle: shade maps to heat stress and UV exposure, nighttime lighting to pedestrian safety, weather hazards to falls and injuries.
+The direction selected was an AI system that maps urban environment and public health. The result is [LightMap](https://github.com/JuhongPark/lightmap) — a real-time map of shade during the day and lighting at night in Boston and Cambridge, Massachusetts, computed from sun position, building geometry, streetlights, tree canopy, and weather. It approaches healthcare AI systems from a preventive public-health angle: shade maps to heat stress and UV exposure, nighttime lighting to pedestrian safety, weather hazards to falls and injuries.
 
 ## Project history
 
@@ -28,7 +28,7 @@ The direction selected was an AI system that maps urban environment and public h
 - Mar 30 – 31 — Map-based healthcare concepts surveyed. Urban environment × public health mapping selected.
 
 ### LightMap implementation (April 1 onward)
-- Apr 1 — Initial plan → scope set to Boston and Cambridge, Massachusetts → rewritten as a "shade by day, light by night" map → project named LightMap.
+- Apr 1 — Initial plan → scope set to Boston and Cambridge, Massachusetts → rewritten as a "shade by day, light by night" map → project named [LightMap](https://github.com/JuhongPark/lightmap).
 - Apr 1 — Data catalog, shadow engine, prototype maps. FastAPI + MapLibre GL JS web app. Weather and hazard overlays, 46K buildings, tree canopy layer, UI polish.
 - Apr 4 — Competitive analysis (Shadowmap.org), plan overhaul, Phase 5 submission readiness.
 - Apr 5 — Rain / snow feature feasibility, data source verification.
@@ -47,4 +47,4 @@ The direction selected was an AI system that maps urban environment and public h
 
 ## Continuation
 
-Development of LightMap continues in a [separate repository](https://github.com/JuhongPark/lightmap).
+Development continues in separate repositories for [LightMap](https://github.com/JuhongPark/lightmap) and [MedCombo](https://github.com/JuhongPark/medcombo).
